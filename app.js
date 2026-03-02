@@ -5,8 +5,8 @@
 
   const ns = window.C25K;
   const PLAN = ns.PLAN;
-    const { $, $$, fmtTime, formatDurationShort, formatPace, totalDuration, workoutLabel,
-            saveData, getData, hasOverride, getRecommendedIndex,
+      const { $, $$, fmtTime, formatDurationShort, formatPace, totalDuration, workoutLabel,
+        saveData, getData, hasOverride, getRecommendedIndex, getDevMode, setDevMode,
             raceCountdownText, nextWorkoutText,
             distanceMeters, formatDistance,
             beep, beepTransition, beepDone, vibrate,
@@ -233,7 +233,10 @@
     }
 
     const overrideActive = hasOverride(data);
-    const idx = getRecommendedIndex(data);
+    let idx = getRecommendedIndex(data);
+    if (!getDevMode() && PLAN[idx] && PLAN[idx].week === 0) {
+      idx = 1;
+    }
     if (idx >= PLAN.length) {
       $('.recommended-card').hidden = true;
       $('#program-complete-msg').hidden = false;
@@ -266,6 +269,9 @@
 
   // ─── WORKOUT SCREEN ───────────────────────────────────────
   function startWorkout(idx) {
+    if (!getDevMode() && PLAN[idx] && PLAN[idx].week === 0) {
+      idx = 1;
+    }
     activeWorkoutIdx = idx;
     activeWorkout = PLAN[idx];
     segIdx = 0;
@@ -824,8 +830,8 @@
   }
 
   // ─── EVENT WIRING ─────────────────────────────────────────
-  function init() {
-    data = getData();
+  function seedSampleHistory() {
+    if (!getDevMode()) return;
     if (!data.hasDummyHistory && data.history.length === 0) {
       const now = Date.now();
       const samples = [
@@ -937,6 +943,33 @@
       data.hasDummyHistory = true;
       saveData(data);
     }
+  }
+
+  function applyDevDefaults() {
+    if (!getDevMode()) return;
+    data.workoutDays = [2, 4, 6];
+    data.raceDate = '2026-12-25';
+    saveData(data);
+  }
+
+  function init() {
+    data = getData();
+    if (!getDevMode()) {
+      if (data.currentWorkout === 0) {
+        data.currentWorkout = 1;
+      }
+      if (data.overrideWorkoutIdx === 0) {
+        data.overrideWorkoutIdx = null;
+      }
+      saveData(data);
+    }
+    if (!getDevMode() && data.history.length > 0) {
+      data.history = data.history.filter(h => !(h.label || '').startsWith('Sample Workout'));
+      data.hasDummyHistory = false;
+      saveData(data);
+    }
+    applyDevDefaults();
+    seedSampleHistory();
     initSetup();
 
     if (!data.gpsPermissionAsked) {
@@ -949,6 +982,23 @@
           { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
         );
       }
+    }
+
+    const devToggle = $('#dev-mode-toggle');
+    if (devToggle) {
+      devToggle.checked = getDevMode();
+      devToggle.addEventListener('change', () => {
+        stopTimer();
+        clearWorkoutState();
+        activeWorkout = null;
+        activeWorkoutIdx = null;
+        track = [];
+        setDevMode(devToggle.checked);
+        data = getData();
+        applyDevDefaults();
+        seedSampleHistory();
+        showHome();
+      });
     }
 
     $('#start-btn').addEventListener('click', () => {

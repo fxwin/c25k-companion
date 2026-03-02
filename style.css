@@ -35,6 +35,31 @@ body {
   min-height: 100dvh;
 }
 
+/* ===== DEV MODE ===== */
+.dev-mode {
+  position: fixed; left: 0; right: 0; bottom: 0;
+  display: flex; align-items: center; justify-content: center; gap: 0.6rem;
+  padding: 0.4rem 0.75rem;
+  background: rgba(250, 250, 250, 0.98);
+  border-top: 1px solid var(--gray-200);
+  z-index: 60;
+}
+.dev-label { font-size: 0.75rem; color: var(--gray-600); font-weight: 600; }
+.switch { position: relative; width: 40px; height: 22px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.switch-slider {
+  position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+  background: var(--gray-300); border-radius: 999px; transition: background 0.2s;
+}
+.switch-slider::before {
+  content: '';
+  position: absolute; height: 18px; width: 18px; left: 2px; top: 2px;
+  background: var(--white); border-radius: 50%; transition: transform 0.2s;
+  box-shadow: var(--shadow);
+}
+.switch input:checked + .switch-slider { background: var(--green-dark); }
+.switch input:checked + .switch-slider::before { transform: translateX(18px); }
+
 /* ===== SCREENS / LAYOUT ===== */
 .screen { min-height: 100dvh; display: flex; align-items: flex-start; justify-content: center; }
 .screen[hidden] { display: none !important; }

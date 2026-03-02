@@ -115,13 +115,27 @@
 
   // ─── LocalStorage ──────────────────────────────────────────
   const STORAGE_KEY = 'c25k_data';
+  const STORAGE_KEY_DEV = 'c25k_data_dev';
+  const DEV_MODE_KEY = 'c25k_dev_mode';
+
+  ns.getDevMode = function () {
+    return localStorage.getItem(DEV_MODE_KEY) === 'true';
+  };
+
+  ns.setDevMode = function (val) {
+    localStorage.setItem(DEV_MODE_KEY, val ? 'true' : 'false');
+  };
+
+  function getStorageKey() {
+    return ns.getDevMode() ? STORAGE_KEY_DEV : STORAGE_KEY;
+  }
 
   ns.loadData = function () {
-    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch { return {}; }
+    try { return JSON.parse(localStorage.getItem(getStorageKey())) || {}; } catch { return {}; }
   };
 
   ns.saveData = function (d) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(d));
+    localStorage.setItem(getStorageKey(), JSON.stringify(d));
   };
 
   ns.getData = function () {
