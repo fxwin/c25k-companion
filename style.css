@@ -35,21 +35,6 @@ body {
   min-height: 100dvh;
 }
 
-/* ===== AUDIO UNLOCK ===== */
-.audio-unlock {
-  position: fixed; left: 0; right: 0; bottom: 0;
-  padding: 0.75rem 1rem 1rem;
-  display: flex; justify-content: center;
-  background: linear-gradient(180deg, rgba(250,250,250,0) 0%, rgba(250,250,250,0.95) 30%, rgba(250,250,250,1) 100%);
-  z-index: 50;
-}
-.audio-unlock-btn {
-  background: var(--green-dark); color: var(--white);
-  border: none; border-radius: 999px;
-  padding: 0.6rem 1.2rem; font-weight: 600;
-  font-size: 0.9rem; box-shadow: var(--shadow);
-}
-
 /* ===== SCREENS / LAYOUT ===== */
 .screen { min-height: 100dvh; display: flex; align-items: flex-start; justify-content: center; }
 .screen[hidden] { display: none !important; }
@@ -292,6 +277,7 @@ h2 { font-size: 1.25rem; font-weight: 600; }
 .hi-name { font-weight: 600; font-size: 0.9rem; }
 .hi-date { font-size: 0.75rem; color: var(--gray-600); }
 .hi-duration { font-size: 0.75rem; color: var(--gray-600); }
+.hi-distance { font-size: 0.75rem; color: var(--gray-600); }
 .hi-rating { font-size: 1.5rem; margin-left: 0.75rem; }
 .hi-delete {
   background: none; border: none; cursor: pointer;
@@ -303,6 +289,36 @@ h2 { font-size: 1.25rem; font-weight: 600; }
 .hi-delete:hover { color: var(--red); }
 .btn-danger { color: var(--red); }
 .btn-muted { color: var(--gray-500); }
+
+/* ===== HISTORY MAP ===== */
+.history-map {
+  margin-top: 1rem;
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 0.75rem;
+}
+.history-map-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+.history-map-title {
+  font-weight: 600; color: var(--gray-800);
+}
+.history-map-canvas {
+  height: 260px;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 0.75rem;
+}
+.history-map-stats {
+  display: grid; gap: 0.35rem;
+  font-size: 0.85rem; color: var(--gray-700);
+}
+.history-map-stats .stat-row {
+  display: flex; justify-content: space-between; align-items: center;
+}
+.history-map-stats .stat-label { font-weight: 600; }
 
 /* ===== PROGRAM OVERVIEW ===== */
 .program-overview {

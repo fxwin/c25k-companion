@@ -31,6 +31,23 @@
     return segments.reduce((a, s) => a + s.duration, 0);
   };
 
+  ns.distanceMeters = function (a, b) {
+    const R = 6371000;
+    const lat1 = a.lat * Math.PI / 180;
+    const lat2 = b.lat * Math.PI / 180;
+    const dLat = (b.lat - a.lat) * Math.PI / 180;
+    const dLng = (b.lng - a.lng) * Math.PI / 180;
+    const sinDLat = Math.sin(dLat / 2);
+    const sinDLng = Math.sin(dLng / 2);
+    const h = sinDLat * sinDLat + Math.cos(lat1) * Math.cos(lat2) * sinDLng * sinDLng;
+    return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
+  };
+
+  ns.formatDistance = function (meters) {
+    if (meters >= 1000) return `${(meters / 1000).toFixed(2)} km`;
+    return `${Math.round(meters)} m`;
+  };
+
   ns.workoutLabel = function (w) {
     return `Week ${w.week} · Day ${w.day}`;
   };
@@ -102,6 +119,7 @@
     if (d.overrideWorkoutIdx === undefined) d.overrideWorkoutIdx = null;
     if (d.programOverviewOpen === undefined) d.programOverviewOpen = false;
     if (d.activeWorkoutState === undefined) d.activeWorkoutState = null;
+    if (d.gpsPermissionAsked === undefined) d.gpsPermissionAsked = false;
     return d;
   };
 

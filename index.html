@@ -7,6 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="theme-color" content="#2E7D32">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
   <title>C25K Companion</title>
   <link rel="stylesheet" href="style.css">
 </head>
@@ -138,13 +139,19 @@
       <div id="history-list" class="history-list"></div>
       <p id="history-empty" class="hint" hidden>No workouts logged yet.</p>
       <button id="history-clear-btn" class="btn btn-link btn-muted" hidden>Clear History</button>
+
+      <div id="history-map" class="history-map" hidden>
+        <div class="history-map-header">
+          <div id="history-map-title" class="history-map-title"></div>
+          <button id="history-map-close" class="btn btn-link btn-muted">Close</button>
+        </div>
+        <div id="history-map-canvas" class="history-map-canvas"></div>
+        <div id="history-map-stats" class="history-map-stats"></div>
+      </div>
     </div>
   </section>
 
-  <div id="audio-unlock" class="audio-unlock" hidden>
-    <button class="audio-unlock-btn">Tap to re-enable sounds</button>
-  </div>
-
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script src="plan.js"></script>
   <script src="utils.js"></script>
   <script src="ui.js"></script>

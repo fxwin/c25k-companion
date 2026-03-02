@@ -7,7 +7,8 @@
   const PLAN = ns.PLAN;
   const { $, $$, fmtTime, fmtDuration, totalDuration, workoutLabel,
           saveData, getData, hasOverride, getRecommendedIndex,
-          raceCountdownText, nextWorkoutText,
+      raceCountdownText, nextWorkoutText,
+      distanceMeters, formatDistance,
           beep, beepTransition, beepDone, vibrate,
           showScreen, buildTimelineBar, buildActiveTimeline,
           buildProgramOverview } = ns;
@@ -26,14 +27,10 @@
   const TRANSITION_SECS = 5;
   let selectedDays = new Set();
   let suppressTransitionAlert = false;
-  let audioUnlockEl = null;
-
-  function ensureAudioUnlocked() {
-    const ctx = ns.getAudioCtx();
-    if (ctx.state === 'suspended' && audioUnlockEl) {
-      audioUnlockEl.hidden = false;
-    }
-  }
+  let watchId = null;
+  let track = [];
+  let historyMap = null;
+  let historyMapLayer = null;
 
   function persistWorkoutState(status) {
     if (activeWorkoutIdx === null) return;
@@ -53,6 +50,64 @@
   function clearWorkoutState() {
     data.activeWorkoutState = null;
     saveData(data);
+  }
+
+  function currentSegmentType() {
+    if (!activeWorkout) return 'walk';
+    if (transitionCountdown > 0) {
+      const nextSeg = activeWorkout.segments[segIdx];
+      return nextSeg ? nextSeg.type : 'walk';
+    }
+    const seg = activeWorkout.segments[segIdx];
+    return seg ? seg.type : 'walk';
+  }
+
+  function startTracking() {
+    if (!navigator.geolocation || watchId !== null) return;
+    watchId = navigator.geolocation.watchPosition(
+      pos => {
+        const point = {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          ts: Date.now(),
+          type: currentSegmentType(),
+        };
+        track.push(point);
+        if (data.activeWorkoutState) data.activeWorkoutState.track = track;
+        saveData(data);
+      },
+      () => {},
+      { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 }
+    );
+  }
+
+  function stopTracking() {
+    if (watchId !== null && navigator.geolocation) {
+      navigator.geolocation.clearWatch(watchId);
+    }
+    watchId = null;
+  }
+
+  function computeTrackStats(trackPoints) {
+    const stats = {
+      totalDistance: 0,
+      totalTime: 0,
+      byType: { warmup: { distance: 0, time: 0 }, jog: { distance: 0, time: 0 }, walk: { distance: 0, time: 0 } }
+    };
+    for (let i = 1; i < trackPoints.length; i++) {
+      const a = trackPoints[i - 1];
+      const b = trackPoints[i];
+      const type = b.type || 'walk';
+      const dist = distanceMeters(a, b);
+      const dt = Math.max(0, Math.floor((b.ts - a.ts) / 1000));
+      stats.totalDistance += dist;
+      stats.totalTime += dt;
+      if (stats.byType[type]) {
+        stats.byType[type].distance += dist;
+        stats.byType[type].time += dt;
+      }
+    }
+    return stats;
   }
 
   function advanceBySeconds(seconds) {
@@ -95,6 +150,7 @@
     segElapsed = state.segElapsed || 0;
     totalElapsed = state.totalElapsed || 0;
     transitionCountdown = state.transitionCountdown || 0;
+    track = state.track || [];
     isRunning = !!state.isRunning;
 
     if (isRunning && state.lastTs) {
@@ -119,7 +175,7 @@
 
     if (isRunning) {
       startTimer();
-      ensureAudioUnlocked();
+      startTracking();
     }
     return true;
   }
@@ -205,6 +261,7 @@
     totalElapsed = 0;
     isRunning = false;
     transitionCountdown = 0;
+    track = [];
 
     showScreen('#workout-screen');
     $('#active-workout-title').textContent = workoutLabel(activeWorkout);
@@ -292,11 +349,11 @@
     if (timerInterval) return;
     const ctx = ns.getAudioCtx();
     if (ctx.state === 'suspended') ctx.resume();
-    if (ctx.state === 'suspended') ensureAudioUnlocked();
     isRunning = true;
     timerInterval = setInterval(tick, 1000);
     updateControls();
     persistWorkoutState('in-progress');
+    startTracking();
   }
 
   function stopTimer() {
@@ -305,6 +362,7 @@
     timerInterval = null;
     updateControls();
     persistWorkoutState('in-progress');
+    stopTracking();
   }
 
   function restartWorkout() {
@@ -313,6 +371,7 @@
     segElapsed = 0;
     totalElapsed = 0;
     transitionCountdown = 0;
+    track = [];
     renderWorkoutState();
     updateControls();
     persistWorkoutState('in-progress');
@@ -341,12 +400,15 @@
 
   function saveCompleted() {
     const woIdx = getRecommendedIndex(data);
+    const stats = computeTrackStats(track);
     data.history.push({
       workoutIdx: woIdx,
       label: workoutLabel(activeWorkout),
       date: new Date().toISOString(),
       duration: totalElapsed,
       rating: selectedRating,
+      track,
+      trackStats: stats,
     });
     if (woIdx >= data.currentWorkout) {
       data.currentWorkout = woIdx + 1;
@@ -356,6 +418,7 @@
     clearWorkoutState();
     activeWorkout = null;
     activeWorkoutIdx = null;
+    track = [];
     showHome();
   }
 
@@ -388,6 +451,7 @@
       const d = new Date(h.date);
       const dateStr = d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
       const timeStr = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+      const dist = h.trackStats ? formatDistance(h.trackStats.totalDistance) : 'No GPS';
       const el = document.createElement('div');
       el.className = 'history-item';
       el.innerHTML = `
@@ -395,10 +459,15 @@
           <div class="hi-name">${h.label}</div>
           <div class="hi-date">${dateStr} · ${timeStr}</div>
           <div class="hi-duration">${fmtDuration(h.duration)}</div>
+          <div class="hi-distance">${dist}</div>
         </div>
         <div class="hi-rating">${ratingEmojis[h.rating] || ''}</div>
         <button class="hi-delete" data-idx="${realIdx}" title="Delete">✕</button>
       `;
+      el.addEventListener('click', (e) => {
+        if (e.target.closest('.hi-delete')) return;
+        showHistoryMap(h);
+      });
       list.appendChild(el);
     });
 
@@ -414,19 +483,98 @@
     });
   }
 
+  function showHistoryMap(entry) {
+    const mapWrap = $('#history-map');
+    const mapTitle = $('#history-map-title');
+    const mapStats = $('#history-map-stats');
+    const mapCanvas = $('#history-map-canvas');
+
+    mapWrap.hidden = false;
+    mapTitle.textContent = entry.label;
+    mapStats.innerHTML = '';
+
+    const stats = entry.trackStats;
+    if (!entry.track || entry.track.length < 2 || !stats) {
+      mapCanvas.innerHTML = '<div class="hint">No GPS data available for this workout.</div>';
+      return;
+    }
+
+    const warmupColor = '#FB8C00';
+    const jogColor = '#2E7D32';
+    const walkColor = '#1E88E5';
+
+    if (!historyMap) {
+      historyMap = L.map(mapCanvas);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap'
+      }).addTo(historyMap);
+    } else {
+      historyMap.invalidateSize();
+    }
+
+    if (historyMapLayer) {
+      historyMap.removeLayer(historyMapLayer);
+    }
+
+    const segments = [];
+    let current = [];
+    let currentType = entry.track[0].type;
+    entry.track.forEach((p, i) => {
+      if (p.type !== currentType) {
+        if (current.length > 1) segments.push({ type: currentType, points: current });
+        currentType = p.type;
+        current = [];
+      }
+      current.push([p.lat, p.lng]);
+      if (i === entry.track.length - 1 && current.length > 1) {
+        segments.push({ type: currentType, points: current });
+      }
+    });
+
+    historyMapLayer = L.layerGroup();
+    segments.forEach(seg => {
+      const color = seg.type === 'warmup' ? warmupColor : seg.type === 'jog' ? jogColor : walkColor;
+      L.polyline(seg.points, { color, weight: 4, opacity: 0.9 }).addTo(historyMapLayer);
+    });
+    historyMapLayer.addTo(historyMap);
+
+    const allPoints = entry.track.map(p => [p.lat, p.lng]);
+    const bounds = L.latLngBounds(allPoints);
+    historyMap.fitBounds(bounds, { padding: [20, 20] });
+
+    const rows = [
+      { label: 'Warmup walk', stats: stats.byType.warmup },
+      { label: 'Jog', stats: stats.byType.jog },
+      { label: 'Walk', stats: stats.byType.walk },
+      { label: 'Total', stats: { distance: stats.totalDistance, time: stats.totalTime } },
+    ];
+    rows.forEach(r => {
+      const row = document.createElement('div');
+      row.className = 'stat-row';
+      row.innerHTML = `
+        <span class="stat-label">${r.label}</span>
+        <span>${formatDistance(r.stats.distance)} • ${fmtDuration(r.stats.time)}</span>
+      `;
+      mapStats.appendChild(row);
+    });
+  }
+
   // ─── EVENT WIRING ─────────────────────────────────────────
   function init() {
     data = getData();
     initSetup();
 
-    audioUnlockEl = $('#audio-unlock');
-    if (audioUnlockEl) {
-      const tryUnlock = async () => {
-        try { await ns.getAudioCtx().resume(); } catch (_) {}
-        if (ns.getAudioCtx().state !== 'suspended') audioUnlockEl.hidden = true;
-      };
-      audioUnlockEl.addEventListener('click', tryUnlock);
-      document.addEventListener('pointerdown', tryUnlock, { once: true });
+    if (!data.gpsPermissionAsked) {
+      data.gpsPermissionAsked = true;
+      saveData(data);
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          () => {},
+          () => {},
+          { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
+        );
+      }
     }
 
     $('#start-btn').addEventListener('click', () => {
@@ -472,6 +620,10 @@
 
     $('#history-back-btn').addEventListener('click', showHome);
 
+    $('#history-map-close').addEventListener('click', () => {
+      $('#history-map').hidden = true;
+    });
+
     const overviewEl = $('#program-overview');
     if (overviewEl) {
       overviewEl.addEventListener('toggle', () => {
@@ -494,6 +646,11 @@
       if (confirm('Delete all workout history? This will reset your progress.')) {
         data.history = [];
         recalcCurrentWorkout();
+        if (historyMapLayer && historyMap) {
+          historyMap.removeLayer(historyMapLayer);
+          historyMapLayer = null;
+        }
+        $('#history-map').hidden = true;
         showHistory();
       }
     });
