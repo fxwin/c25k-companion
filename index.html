@@ -38,8 +38,8 @@
         <label for="audio-mode">Audio cues</label>
         <select id="audio-mode">
           <option value="beeps">Beeps</option>
-          <option value="female">Calm female voice</option>
-          <option value="male">Calm male voice</option>
+          <option value="female">Female voice</option>
+          <option value="male">Male voice</option>
           <option value="mute">Mute</option>
         </select>
       </div>
@@ -95,16 +95,18 @@
   <section id="workout-screen" class="screen" hidden>
     <div class="container workout-container">
       <div class="workout-header">
-        <div class="workout-audio-controls">
-          <button id="audio-mute-btn" class="btn btn-icon audio-mute-btn" aria-pressed="false" title="Mute">🔊</button>
-          <select id="workout-audio-mode" class="audio-mode-select">
-            <option value="beeps">Beeps</option>
-            <option value="female">Calm female voice</option>
-            <option value="male">Calm male voice</option>
-          </select>
-        </div>
         <button id="workout-back-btn" class="btn btn-icon">✕</button>
         <h2 id="active-workout-title"></h2>
+        <div class="workout-audio-controls">
+          <button id="audio-mute-btn" class="btn btn-icon audio-mute-btn" aria-pressed="false" title="Mute">
+            <img id="audio-mute-icon" class="audio-mute-icon" src="icons/speaker.svg" alt="Speaker" />
+          </button>
+          <select id="workout-audio-mode" class="audio-mode-select">
+            <option value="beeps">Beeps</option>
+            <option value="female">Female voice</option>
+            <option value="male">Male voice</option>
+          </select>
+        </div>
       </div>
 
       <div id="segment-display" class="segment-display">

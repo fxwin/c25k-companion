@@ -25,6 +25,8 @@
   let selectedRating = 0;
   let transitionCountdown = 0;
   const TRANSITION_SECS = 5;
+  const START_BUFFER_SECS = 5;
+  let preStartCountdown = 0;
   let selectedDays = new Set();
   let suppressTransitionAlert = false;
   let watchId = null;
@@ -42,6 +44,7 @@
       segElapsed,
       totalElapsed,
       transitionCountdown,
+      preStartCountdown,
       isRunning,
       lastTs: Date.now(),
     };
@@ -172,6 +175,7 @@
     segElapsed = state.segElapsed || 0;
     totalElapsed = state.totalElapsed || 0;
     transitionCountdown = state.transitionCountdown || 0;
+    preStartCountdown = state.preStartCountdown || 0;
     track = state.track || [];
     isRunning = !!state.isRunning;
 
@@ -210,6 +214,8 @@
       audioSelect.value = data.audioMode || 'beeps';
       audioSelect.addEventListener('change', () => {
         data.audioMode = audioSelect.value;
+        data.audioModeSet = true;
+        data.audioMuted = data.audioMode === 'mute';
         saveData(data);
       });
     }
@@ -226,7 +232,11 @@
       data.workoutDays = [...selectedDays];
       const raceDateVal = $('#race-date-input').value;
       data.raceDate = raceDateVal || null;
-      if (audioSelect) data.audioMode = audioSelect.value;
+      if (audioSelect) {
+        data.audioMode = audioSelect.value;
+        data.audioModeSet = true;
+        data.audioMuted = data.audioMode === 'mute';
+      }
       saveData(data);
       showHome();
     });
@@ -309,6 +319,7 @@
     totalElapsed = 0;
     isRunning = false;
     transitionCountdown = 0;
+    preStartCountdown = 0;
     track = [];
 
     showScreen('#workout-screen');
@@ -316,11 +327,27 @@
     renderWorkoutState();
     updateControls();
     persistWorkoutState('in-progress');
-    playVoice('start_warmup');
     syncWorkoutAudioControls();
   }
 
   function renderWorkoutState() {
+    if (preStartCountdown > 0) {
+      const firstSeg = activeWorkout.segments[0];
+      const typeEl = $('#segment-type');
+      const firstLabel = firstSeg.type === 'warmup' ? 'Warmup Walk' : firstSeg.type === 'jog' ? 'Jog' : 'Walk';
+      typeEl.textContent = `Get Ready: ${firstLabel}`;
+      typeEl.className = 'segment-type type-transition';
+      $('#segment-timer').textContent = fmtTime(preStartCountdown);
+      $('#segment-remaining').textContent = `Segment 1 of ${activeWorkout.segments.length}`;
+
+      const total = totalDuration(activeWorkout.segments);
+      const pct = Math.min(100, (totalElapsed / total) * 100);
+      $('#total-progress-bar').style.width = pct + '%';
+      $('#total-time-display').textContent = `${fmtTime(totalElapsed)} / ${fmtTime(total)}`;
+
+      buildActiveTimeline($('#active-timeline'), activeWorkout.segments, 0);
+      return;
+    }
     if (transitionCountdown > 0) {
       const nextSeg = activeWorkout.segments[segIdx];
       const typeEl = $('#segment-type');
@@ -357,6 +384,20 @@
   }
 
   function tick() {
+    if (preStartCountdown > 0) {
+      preStartCountdown--;
+      if (preStartCountdown === 0) {
+        if (data.audioMode === 'beeps' && !data.audioMuted) {
+          beepTransition();
+        } else {
+          playVoice('start_now');
+        }
+        vibrate([200, 100, 200]);
+      }
+      renderWorkoutState();
+      if (isRunning) persistWorkoutState('in-progress');
+      return;
+    }
     if (transitionCountdown > 0) {
       transitionCountdown--;
       if (transitionCountdown === 0) {
@@ -403,6 +444,9 @@
         playVoice(getVoiceKeyForReady(nextSeg, activeWorkout.week));
       }
     }
+    renderWorkoutState();
+    if (isRunning) persistWorkoutState('in-progress');
+  }
 
   function playAudioSample(mode) {
     if (data.audioMuted) return;
@@ -416,16 +460,16 @@
   function syncWorkoutAudioControls() {
     const audioSelect = $('#workout-audio-mode');
     const muteBtn = $('#audio-mute-btn');
+    const muteIcon = $('#audio-mute-icon');
     if (audioSelect) audioSelect.value = data.audioMode || 'beeps';
     if (muteBtn) {
       muteBtn.classList.toggle('muted', !!data.audioMuted);
       muteBtn.setAttribute('aria-pressed', data.audioMuted ? 'true' : 'false');
-      muteBtn.textContent = data.audioMuted ? '🔇' : '🔊';
+      if (muteIcon) {
+        muteIcon.src = data.audioMuted ? 'icons/speaker_mute.svg' : 'icons/speaker.svg';
+        muteIcon.alt = data.audioMuted ? 'Muted' : 'Speaker';
+      }
     }
-  }
-
-    renderWorkoutState();
-    if (isRunning) persistWorkoutState('in-progress');
   }
 
   function startTimer() {
@@ -433,6 +477,10 @@
     const ctx = ns.getAudioCtx();
     if (ctx.state === 'suspended') ctx.resume();
     isRunning = true;
+    if (totalElapsed === 0 && segIdx === 0 && segElapsed === 0 && transitionCountdown === 0 && preStartCountdown === 0) {
+      preStartCountdown = START_BUFFER_SECS;
+      playVoice('start_warmup');
+    }
     timerInterval = setInterval(tick, 1000);
     updateControls();
     persistWorkoutState('in-progress');
@@ -454,6 +502,7 @@
     segElapsed = 0;
     totalElapsed = 0;
     transitionCountdown = 0;
+    preStartCountdown = 0;
     track = [];
     renderWorkoutState();
     updateControls();
@@ -1019,6 +1068,14 @@
 
   function init() {
     data = getData();
+    if (!data.audioModeSet) {
+      data.audioMode = 'beeps';
+      data.audioMuted = true;
+      saveData(data);
+    } else if (data.audioMode !== 'mute') {
+      data.audioMuted = false;
+      saveData(data);
+    }
     if (!getDevMode()) {
       if (data.currentWorkout === 0) {
         data.currentWorkout = 1;
@@ -1082,6 +1139,7 @@
       workoutAudioSelect.value = data.audioMode || 'beeps';
       workoutAudioSelect.addEventListener('change', () => {
         data.audioMode = workoutAudioSelect.value;
+        data.audioMuted = data.audioMode === 'mute';
         saveData(data);
         syncWorkoutAudioControls();
         playAudioSample(data.audioMode);

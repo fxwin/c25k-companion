@@ -151,6 +151,7 @@
     if (d.hasDummyHistory === undefined) d.hasDummyHistory = false;
     if (!d.audioMode) d.audioMode = 'beeps';
     if (d.audioMuted === undefined) d.audioMuted = false;
+    if (d.audioModeSet === undefined) d.audioModeSet = false;
     return d;
   };
 
