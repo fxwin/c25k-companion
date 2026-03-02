@@ -43,7 +43,12 @@
     <div class="container">
       <header class="home-header">
         <h1>C25K</h1>
-        <div id="race-countdown" class="race-countdown"></div>
+        <div class="home-header-right">
+          <div class="header-badges">
+            <div id="recent-jog-pace" class="recent-pace" hidden></div>
+            <div id="race-countdown" class="race-countdown"></div>
+          </div>
+        </div>
       </header>
 
       <div id="next-workout-info" class="next-workout-info"></div>
@@ -67,13 +72,16 @@
         <p>You've completed all 27 workouts. You're ready for your 5K!</p>
       </div>
 
+      <div class="home-actions">
+        <button id="history-btn" class="btn btn-secondary">View History</button>
+        <button id="stats-btn" class="btn btn-secondary">View Stats</button>
+      </div>
+      <button id="settings-btn" class="btn btn-link">Change Workout Days</button>
+
       <details id="program-overview" class="program-overview">
         <summary class="program-overview-toggle">Full Program Overview</summary>
         <div id="program-weeks" class="program-weeks"></div>
       </details>
-
-      <button id="history-btn" class="btn btn-secondary">View History</button>
-      <button id="settings-btn" class="btn btn-link">Change Workout Days</button>
     </div>
   </section>
 
@@ -139,6 +147,37 @@
       <div id="history-list" class="history-list"></div>
       <p id="history-empty" class="hint" hidden>No workouts logged yet.</p>
       <button id="history-clear-btn" class="btn btn-link btn-muted" hidden>Clear History</button>
+    </div>
+  </section>
+
+  <!-- STATS SCREEN -->
+  <section id="stats-screen" class="screen" hidden>
+    <div class="container">
+      <div class="workout-header">
+        <button id="stats-back-btn" class="btn btn-icon">← Back</button>
+        <h2>Stats</h2>
+      </div>
+
+      <div id="stats-summary" class="stats-summary"></div>
+
+      <div class="stats-charts">
+        <div class="stats-card">
+          <div class="stats-card-title">Distance (last 10)</div>
+          <div id="stats-distance-chart" class="stats-chart"></div>
+        </div>
+        <div class="stats-card">
+          <div class="stats-card-title">Jog Pace (last 10)</div>
+          <div id="stats-pace-chart" class="stats-chart"></div>
+        </div>
+        <div class="stats-card">
+          <div class="stats-card-title">Mood (last 10)</div>
+          <div id="stats-mood-chart" class="stats-chart"></div>
+        </div>
+        <div class="stats-card">
+          <div class="stats-card-title">Mood Distribution</div>
+          <div id="stats-mood-dist" class="stats-chart"></div>
+        </div>
+      </div>
     </div>
   </section>
 

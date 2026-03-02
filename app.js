@@ -6,12 +6,12 @@
   const ns = window.C25K;
   const PLAN = ns.PLAN;
     const { $, $$, fmtTime, formatDurationShort, formatPace, totalDuration, workoutLabel,
-      saveData, getData, hasOverride, getRecommendedIndex,
-      raceCountdownText, nextWorkoutText,
-      distanceMeters, formatDistance,
-      beep, beepTransition, beepDone, vibrate,
-      showScreen, buildTimelineBar, buildActiveTimeline,
-      buildProgramOverview } = ns;
+            saveData, getData, hasOverride, getRecommendedIndex,
+            raceCountdownText, nextWorkoutText,
+            distanceMeters, formatDistance,
+            beep, beepTransition, beepDone, vibrate,
+            showScreen, buildTimelineBar, buildActiveTimeline,
+            buildProgramOverview } = ns;
 
   // ─── APP STATE ─────────────────────────────────────────────
   let data = getData();
@@ -219,6 +219,17 @@
 
     // Next workout day
     $('#next-workout-info').textContent = nextWorkoutText(data.workoutDays);
+
+    const recentPaceEl = $('#recent-jog-pace');
+    const latest = data.history[data.history.length - 1];
+    const jogStats = latest && latest.trackStats ? latest.trackStats.byType.jog : null;
+    if (jogStats && jogStats.distance > 0) {
+      const pace = formatPace(jogStats.time / (jogStats.distance / 1000));
+      recentPaceEl.textContent = `Current pace: ${pace}/km`;
+      recentPaceEl.hidden = false;
+    } else if (recentPaceEl) {
+      recentPaceEl.hidden = true;
+    }
 
     const overrideActive = hasOverride(data);
     const idx = getRecommendedIndex(data);
@@ -513,6 +524,110 @@
     });
   }
 
+  function getJogPaceSeconds(entry) {
+    if (!entry || !entry.trackStats) return null;
+    const jog = entry.trackStats.byType.jog;
+    if (!jog || jog.distance <= 0) return null;
+    return jog.time / (jog.distance / 1000);
+  }
+
+  function renderLineChart(container, values, color) {
+    if (!values || values.length === 0) {
+      container.innerHTML = '<div class="hint">No data</div>';
+      return;
+    }
+    const w = 320;
+    const h = 120;
+    const pad = 12;
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const range = max - min || 1;
+    const points = values.map((v, i) => {
+      const x = pad + (i / (values.length - 1 || 1)) * (w - pad * 2);
+      const y = h - pad - ((v - min) / range) * (h - pad * 2);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(' ');
+    container.innerHTML = `
+      <svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" role="img">
+        <polyline fill="none" stroke="${color}" stroke-width="3" points="${points}" />
+      </svg>
+    `;
+  }
+
+  function renderBarChart(container, counts) {
+    const w = 320;
+    const h = 120;
+    const pad = 12;
+    const max = Math.max(...counts, 1);
+    const barW = (w - pad * 2) / counts.length;
+    const bars = counts.map((c, i) => {
+      const barH = (c / max) * (h - pad * 2);
+      const x = pad + i * barW + 6;
+      const y = h - pad - barH;
+      return `<rect x="${x}" y="${y}" width="${barW - 12}" height="${barH}" fill="#43A047" rx="4" />`;
+    }).join('');
+    container.innerHTML = `
+      <svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" role="img">
+        ${bars}
+      </svg>
+    `;
+  }
+
+  function showStats() {
+    showScreen('#stats-screen');
+    const summary = $('#stats-summary');
+    const distanceChart = $('#stats-distance-chart');
+    const paceChart = $('#stats-pace-chart');
+    const moodChart = $('#stats-mood-chart');
+    const moodDist = $('#stats-mood-dist');
+
+    const history = [...data.history].slice(-10);
+    if (history.length === 0) {
+      summary.innerHTML = '<div class="hint">No workouts yet.</div>';
+      distanceChart.innerHTML = '';
+      paceChart.innerHTML = '';
+      moodChart.innerHTML = '';
+      moodDist.innerHTML = '';
+      return;
+    }
+
+    const distances = history.map(h => h.trackStats ? h.trackStats.totalDistance : 0);
+    const jogPaces = history.map(h => getJogPaceSeconds(h)).filter(v => v !== null);
+    const moods = history.map(h => h.rating || 0);
+    const totalDistance = distances.reduce((a, b) => a + b, 0);
+    const totalTime = history.reduce((a, h) => a + (h.trackStats ? h.trackStats.totalTime : 0), 0);
+    const avgMood = moods.reduce((a, b) => a + b, 0) / moods.length;
+    const avgPace = totalDistance > 0 ? formatPace(totalTime / (totalDistance / 1000)) : '—';
+    const avgJogPace = jogPaces.length > 0 ? formatPace(jogPaces.reduce((a, b) => a + b, 0) / jogPaces.length) : '—';
+
+    summary.innerHTML = `
+      <div class="stats-card stats-metric">
+        <div class="value">${formatDistance(totalDistance)}</div>
+        <div class="label">Total distance</div>
+      </div>
+      <div class="stats-card stats-metric">
+        <div class="value">${avgPace}/km</div>
+        <div class="label">Avg pace</div>
+      </div>
+      <div class="stats-card stats-metric">
+        <div class="value">${avgJogPace}/km</div>
+        <div class="label">Avg jog pace</div>
+      </div>
+      <div class="stats-card stats-metric">
+        <div class="value">${avgMood.toFixed(1)}</div>
+        <div class="label">Avg mood</div>
+      </div>
+    `;
+
+    renderLineChart(distanceChart, distances, '#2E7D32');
+    if (jogPaces.length > 0) renderLineChart(paceChart, jogPaces, '#1E88E5');
+    else paceChart.innerHTML = '<div class="hint">No jog data</div>';
+    renderLineChart(moodChart, moods.map(m => m || 0.1), '#FB8C00');
+
+    const moodCounts = [1, 2, 3, 4, 5].map(v => moods.filter(m => m === v).length);
+    renderBarChart(moodDist, moodCounts);
+  }
+
   function renderHistoryMap(entry, mapCanvas, mapStats, mapWrap) {
     mapStats.innerHTML = '';
 
@@ -670,6 +785,42 @@
             { lat: 37.7706, lng: -122.4230, ts: 12, type: 'walk' },
             { lat: 37.7711, lng: -122.4222, ts: 15, type: 'walk' },
           ]
+        },
+        {
+          label: 'Sample Workout E',
+          baseTs: now - 5 * 86400000,
+          track: [
+            { lat: 37.7820, lng: -122.4095, ts: 0, type: 'warmup' },
+            { lat: 37.7826, lng: -122.4087, ts: 2, type: 'warmup' },
+            { lat: 37.7832, lng: -122.4079, ts: 4, type: 'jog' },
+            { lat: 37.7837, lng: -122.4071, ts: 6, type: 'jog' },
+            { lat: 37.7842, lng: -122.4063, ts: 8, type: 'walk' },
+            { lat: 37.7847, lng: -122.4055, ts: 10, type: 'walk' },
+          ]
+        },
+        {
+          label: 'Sample Workout F',
+          baseTs: now - 6 * 86400000,
+          track: [
+            { lat: 37.7652, lng: -122.4310, ts: 0, type: 'warmup' },
+            { lat: 37.7658, lng: -122.4302, ts: 3, type: 'warmup' },
+            { lat: 37.7663, lng: -122.4294, ts: 6, type: 'jog' },
+            { lat: 37.7669, lng: -122.4286, ts: 9, type: 'jog' },
+            { lat: 37.7674, lng: -122.4278, ts: 12, type: 'walk' },
+            { lat: 37.7680, lng: -122.4270, ts: 15, type: 'walk' },
+          ]
+        },
+        {
+          label: 'Sample Workout G',
+          baseTs: now - 7 * 86400000,
+          track: [
+            { lat: 37.7871, lng: -122.4018, ts: 0, type: 'warmup' },
+            { lat: 37.7877, lng: -122.4010, ts: 2, type: 'warmup' },
+            { lat: 37.7883, lng: -122.4002, ts: 4, type: 'jog' },
+            { lat: 37.7889, lng: -122.3994, ts: 6, type: 'jog' },
+            { lat: 37.7894, lng: -122.3986, ts: 8, type: 'walk' },
+            { lat: 37.7900, lng: -122.3978, ts: 10, type: 'walk' },
+          ]
         }
       ];
 
@@ -714,6 +865,7 @@
       if (idx < PLAN.length) startWorkout(idx);
     });
     $('#history-btn').addEventListener('click', showHistory);
+    $('#stats-btn').addEventListener('click', showStats);
     $('#settings-btn').addEventListener('click', () => {
       selectedDays = new Set(data.workoutDays || []);
       $$('.day-btn').forEach(b => {
@@ -751,6 +903,7 @@
     $('#complete-done-btn').addEventListener('click', saveCompleted);
 
     $('#history-back-btn').addEventListener('click', showHome);
+    $('#stats-back-btn').addEventListener('click', showHome);
 
 
     const overviewEl = $('#program-overview');

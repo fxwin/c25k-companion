@@ -118,11 +118,46 @@ h2 { font-size: 1.25rem; font-weight: 600; }
 
 /* ===== HOME: HEADER ===== */
 .home-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
+.home-header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 0.25rem; }
+.header-badges {
+  display: flex; flex-direction: column; align-items: flex-end;
+  gap: 0.4rem; flex-wrap: nowrap; justify-content: flex-end;
+}
 .race-countdown {
   font-size: 0.8rem; font-weight: 600;
   background: var(--green-pale); color: var(--green-dark);
   padding: 0.25rem 0.75rem; border-radius: 999px;
 }
+.recent-pace {
+  font-size: 0.75rem; font-weight: 600;
+  color: var(--gray-700);
+  background: var(--gray-100);
+  padding: 0.2rem 0.6rem; border-radius: 999px;
+  align-self: center;
+}
+.home-actions { display: flex; gap: 0.75rem; }
+.home-actions .btn { flex: 1; }
+
+/* ===== STATS ===== */
+.stats-summary {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+.stats-card {
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 0.75rem;
+}
+.stats-card-title { font-size: 0.8rem; font-weight: 700; color: var(--gray-700); margin-bottom: 0.5rem; }
+.stats-charts { display: grid; gap: 0.75rem; }
+.stats-chart { height: 140px; }
+.stats-metric {
+  display: grid; gap: 0.15rem;
+  font-size: 0.8rem; color: var(--gray-700);
+}
+.stats-metric .value { font-size: 1rem; font-weight: 700; color: var(--gray-900); }
+.stats-metric .label { font-size: 0.75rem; color: var(--gray-600); }
 
 .next-workout-info {
   font-size: 0.9rem; color: var(--green-dark); font-weight: 600;
