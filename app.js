@@ -25,6 +25,15 @@
   let transitionCountdown = 0;
   const TRANSITION_SECS = 5;
   let selectedDays = new Set();
+  let suppressTransitionAlert = false;
+  let audioUnlockEl = null;
+
+  function ensureAudioUnlocked() {
+    const ctx = ns.getAudioCtx();
+    if (ctx.state === 'suspended' && audioUnlockEl) {
+      audioUnlockEl.hidden = false;
+    }
+  }
 
   function persistWorkoutState(status) {
     if (activeWorkoutIdx === null) return;
@@ -90,7 +99,10 @@
 
     if (isRunning && state.lastTs) {
       const delta = Math.max(0, Math.floor((Date.now() - state.lastTs) / 1000));
-      if (delta > 0) advanceBySeconds(delta);
+      if (delta > 0) {
+        advanceBySeconds(delta);
+        suppressTransitionAlert = true;
+      }
     }
 
     if (state.status === 'complete' || segIdx >= activeWorkout.segments.length) {
@@ -105,7 +117,10 @@
     renderWorkoutState();
     updateControls();
 
-    if (isRunning) startTimer();
+    if (isRunning) {
+      startTimer();
+      ensureAudioUnlocked();
+    }
     return true;
   }
 
@@ -238,8 +253,12 @@
     if (transitionCountdown > 0) {
       transitionCountdown--;
       if (transitionCountdown === 0) {
-        beepTransition();
-        vibrate([200, 100, 200]);
+        if (suppressTransitionAlert) {
+          suppressTransitionAlert = false;
+        } else {
+          beepTransition();
+          vibrate([200, 100, 200]);
+        }
       }
       renderWorkoutState();
       if (isRunning) persistWorkoutState('in-progress');
@@ -273,6 +292,7 @@
     if (timerInterval) return;
     const ctx = ns.getAudioCtx();
     if (ctx.state === 'suspended') ctx.resume();
+    if (ctx.state === 'suspended') ensureAudioUnlocked();
     isRunning = true;
     timerInterval = setInterval(tick, 1000);
     updateControls();
@@ -398,6 +418,16 @@
   function init() {
     data = getData();
     initSetup();
+
+    audioUnlockEl = $('#audio-unlock');
+    if (audioUnlockEl) {
+      const tryUnlock = async () => {
+        try { await ns.getAudioCtx().resume(); } catch (_) {}
+        if (ns.getAudioCtx().state !== 'suspended') audioUnlockEl.hidden = true;
+      };
+      audioUnlockEl.addEventListener('click', tryUnlock);
+      document.addEventListener('pointerdown', tryUnlock, { once: true });
+    }
 
     $('#start-btn').addEventListener('click', () => {
       const idx = getRecommendedIndex(data);

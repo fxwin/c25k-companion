@@ -35,6 +35,21 @@ body {
   min-height: 100dvh;
 }
 
+/* ===== AUDIO UNLOCK ===== */
+.audio-unlock {
+  position: fixed; left: 0; right: 0; bottom: 0;
+  padding: 0.75rem 1rem 1rem;
+  display: flex; justify-content: center;
+  background: linear-gradient(180deg, rgba(250,250,250,0) 0%, rgba(250,250,250,0.95) 30%, rgba(250,250,250,1) 100%);
+  z-index: 50;
+}
+.audio-unlock-btn {
+  background: var(--green-dark); color: var(--white);
+  border: none; border-radius: 999px;
+  padding: 0.6rem 1.2rem; font-weight: 600;
+  font-size: 0.9rem; box-shadow: var(--shadow);
+}
+
 /* ===== SCREENS / LAYOUT ===== */
 .screen { min-height: 100dvh; display: flex; align-items: flex-start; justify-content: center; }
 .screen[hidden] { display: none !important; }
