@@ -268,17 +268,30 @@ h2 { font-size: 1.25rem; font-weight: 600; }
 
 /* ===== HISTORY ===== */
 .history-list { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem; }
-.history-item {
+.history-entry {
   background: var(--white); border-radius: var(--radius);
   box-shadow: var(--shadow); padding: 0.75rem 1rem;
-  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+.history-item-header {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  column-gap: 0.75rem;
+  align-items: center;
 }
 .history-item .hi-left { flex: 1; }
+.hi-right {
+  display: grid;
+  grid-template-rows: auto auto;
+  row-gap: 0.15rem;
+  text-align: right;
+}
 .hi-name { font-weight: 600; font-size: 0.9rem; }
 .hi-date { font-size: 0.75rem; color: var(--gray-600); }
 .hi-duration { font-size: 0.75rem; color: var(--gray-600); }
 .hi-distance { font-size: 0.75rem; color: var(--gray-600); }
-.hi-rating { font-size: 1.5rem; margin-left: 0.75rem; }
+.hi-actions { display: inline-flex; align-items: center; gap: 0.5rem; margin-left: 0.75rem; }
+.hi-rating { font-size: 1.5rem; }
 .hi-delete {
   background: none; border: none; cursor: pointer;
   font-size: 1.1rem; color: var(--gray-400); padding: 0.25rem;
@@ -290,23 +303,17 @@ h2 { font-size: 1.25rem; font-weight: 600; }
 .btn-danger { color: var(--red); }
 .btn-muted { color: var(--gray-500); }
 
-/* ===== HISTORY MAP ===== */
-.history-map {
-  margin-top: 1rem;
+/* ===== HISTORY MAP (INLINE) ===== */
+.history-entry { margin-bottom: 0.75rem; }
+.history-map-inline {
   background: var(--white);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   padding: 0.75rem;
-}
-.history-map-header {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 0.5rem;
-}
-.history-map-title {
-  font-weight: 600; color: var(--gray-800);
+  margin-top: 0.5rem;
 }
 .history-map-canvas {
-  height: 260px;
+  height: 240px;
   border-radius: 10px;
   overflow: hidden;
   margin-bottom: 0.75rem;
@@ -319,6 +326,27 @@ h2 { font-size: 1.25rem; font-weight: 600; }
   display: flex; justify-content: space-between; align-items: center;
 }
 .history-map-stats .stat-label { font-weight: 600; }
+.history-map-stats .stat-label { display: inline-flex; align-items: center; gap: 0.4rem; }
+.history-map-stats .stat-swatch {
+  width: 10px; height: 10px; border-radius: 2px; display: inline-block;
+}
+.history-map-stats .stat-divider {
+  height: 1px; background: var(--gray-200);
+  margin: 0.15rem 0;
+}
+.segment-label {
+  background: rgba(255,255,255,0.9);
+  border: 1px solid var(--gray-200);
+  border-radius: 999px;
+  padding: 0.2rem 0.5rem;
+  min-width: 70px;
+  text-align: center;
+  font-size: 0.7rem; font-weight: 600;
+  color: var(--gray-800);
+  box-shadow: var(--shadow);
+  line-height: 1.1;
+}
+.segment-label-line { display: block; text-align: center; }
 
 /* ===== PROGRAM OVERVIEW ===== */
 .program-overview {

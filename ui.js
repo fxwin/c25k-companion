@@ -4,7 +4,7 @@
   'use strict';
 
   const ns = window.C25K;
-  const { $, $$, fmtDuration, totalDuration, workoutLabel } = ns;
+  const { $, $$, fmtDuration, formatDurationShort, totalDuration, workoutLabel } = ns;
 
   // ─── Show/hide screens ─────────────────────────────────────
   ns.showScreen = function (id) {
@@ -40,7 +40,7 @@
       const doneTime = segments.slice(0, activeIdx).reduce((a, s) => a + s.duration, 0);
       const el = document.createElement('div');
       el.className = 'tl-item done';
-      el.innerHTML = `<span class="tl-dot"></span><span>${activeIdx} section${activeIdx > 1 ? 's' : ''} completed</span><span class="tl-dur">${fmtDuration(doneTime)}</span>`;
+      el.innerHTML = `<span class="tl-dot"></span><span>${activeIdx} section${activeIdx > 1 ? 's' : ''} completed</span><span class="tl-dur">${formatDurationShort(doneTime)}</span>`;
       container.appendChild(el);
     }
 
@@ -48,7 +48,7 @@
     const cur = segments[activeIdx];
     const curEl = document.createElement('div');
     curEl.className = 'tl-item active';
-    curEl.innerHTML = `<span class="tl-dot"></span><span>${segLabel(cur)}</span><span class="tl-dur">${fmtDuration(cur.duration)}</span>`;
+    curEl.innerHTML = `<span class="tl-dot"></span><span>${segLabel(cur)}</span><span class="tl-dur">${formatDurationShort(cur.duration)}</span>`;
     container.appendChild(curEl);
 
     // 3) Next section
@@ -56,7 +56,7 @@
       const nxt = segments[activeIdx + 1];
       const nxtEl = document.createElement('div');
       nxtEl.className = 'tl-item';
-      nxtEl.innerHTML = `<span class="tl-dot"></span><span>Up next: ${segLabel(nxt)}</span><span class="tl-dur">${fmtDuration(nxt.duration)}</span>`;
+      nxtEl.innerHTML = `<span class="tl-dot"></span><span>Up next: ${segLabel(nxt)}</span><span class="tl-dur">${formatDurationShort(nxt.duration)}</span>`;
       container.appendChild(nxtEl);
     }
 
@@ -67,7 +67,7 @@
       const remainTime = segments.slice(remainStart).reduce((a, s) => a + s.duration, 0);
       const remEl = document.createElement('div');
       remEl.className = 'tl-item remaining';
-      remEl.innerHTML = `<span class="tl-dot"></span><span>${remainCount} more section${remainCount > 1 ? 's' : ''}</span><span class="tl-dur">${fmtDuration(remainTime)}</span>`;
+      remEl.innerHTML = `<span class="tl-dot"></span><span>${remainCount} more section${remainCount > 1 ? 's' : ''}</span><span class="tl-dur">${formatDurationShort(remainTime)}</span>`;
       container.appendChild(remEl);
     }
   };
@@ -116,7 +116,7 @@
         el.style.cursor = 'pointer';
 
         const checkContent = done ? '\u2713' : '';
-        const dur = fmtDuration(totalDuration(w.segments));
+        const dur = formatDurationShort(totalDuration(w.segments));
         el.innerHTML = `
           <span class="wo-check">${checkContent}</span>
           <span>Day ${w.day}</span>

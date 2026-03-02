@@ -5,13 +5,13 @@
 
   const ns = window.C25K;
   const PLAN = ns.PLAN;
-  const { $, $$, fmtTime, fmtDuration, totalDuration, workoutLabel,
-          saveData, getData, hasOverride, getRecommendedIndex,
+    const { $, $$, fmtTime, formatDurationShort, formatPace, totalDuration, workoutLabel,
+      saveData, getData, hasOverride, getRecommendedIndex,
       raceCountdownText, nextWorkoutText,
       distanceMeters, formatDistance,
-          beep, beepTransition, beepDone, vibrate,
-          showScreen, buildTimelineBar, buildActiveTimeline,
-          buildProgramOverview } = ns;
+      beep, beepTransition, beepDone, vibrate,
+      showScreen, buildTimelineBar, buildActiveTimeline,
+      buildProgramOverview } = ns;
 
   // ─── APP STATE ─────────────────────────────────────────────
   let data = getData();
@@ -29,8 +29,7 @@
   let suppressTransitionAlert = false;
   let watchId = null;
   let track = [];
-  let historyMap = null;
-  let historyMapLayer = null;
+  const historyMaps = new WeakMap();
 
   function persistWorkoutState(status) {
     if (activeWorkoutIdx === null) return;
@@ -55,8 +54,9 @@
   function currentSegmentType() {
     if (!activeWorkout) return 'walk';
     if (transitionCountdown > 0) {
-      const nextSeg = activeWorkout.segments[segIdx];
-      return nextSeg ? nextSeg.type : 'walk';
+      const prevIdx = Math.max(0, segIdx - 1);
+      const prevSeg = activeWorkout.segments[prevIdx];
+      return prevSeg ? prevSeg.type : 'walk';
     }
     const seg = activeWorkout.segments[segIdx];
     return seg ? seg.type : 'walk';
@@ -244,7 +244,7 @@
     const w = PLAN[idx];
     $('#workout-title').textContent = workoutLabel(w);
     buildTimelineBar($('#workout-preview-timeline'), w.segments);
-    $('#workout-total-time').textContent = `Total: ${fmtDuration(totalDuration(w.segments))}`;
+    $('#workout-total-time').textContent = `Total: ${formatDurationShort(totalDuration(w.segments))}`;
 
     // Build program overview
     buildProgramOverview(data, { onSetNext: showHome });
@@ -394,7 +394,7 @@
     $$('.rating-btn').forEach(b => b.classList.remove('selected'));
     $('#complete-done-btn').disabled = true;
     $('#complete-workout-name').textContent = workoutLabel(activeWorkout);
-    $('#complete-duration').textContent = `Duration: ${fmtDuration(totalElapsed)}`;
+    $('#complete-duration').textContent = `Duration: ${formatDurationShort(totalElapsed)}`;
     persistWorkoutState('complete');
   }
 
@@ -452,23 +452,53 @@
       const dateStr = d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
       const timeStr = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
       const dist = h.trackStats ? formatDistance(h.trackStats.totalDistance) : 'No GPS';
-      const el = document.createElement('div');
-      el.className = 'history-item';
-      el.innerHTML = `
+
+      const entry = document.createElement('div');
+      entry.className = 'history-entry';
+
+      const item = document.createElement('div');
+      item.className = 'history-item-header';
+      item.innerHTML = `
         <div class="hi-left">
           <div class="hi-name">${h.label}</div>
           <div class="hi-date">${dateStr} · ${timeStr}</div>
-          <div class="hi-duration">${fmtDuration(h.duration)}</div>
+        </div>
+        <div class="hi-right">
+          <div class="hi-duration">${formatDurationShort(h.duration)}</div>
           <div class="hi-distance">${dist}</div>
         </div>
-        <div class="hi-rating">${ratingEmojis[h.rating] || ''}</div>
-        <button class="hi-delete" data-idx="${realIdx}" title="Delete">✕</button>
+        <div class="hi-actions">
+          <div class="hi-rating">${ratingEmojis[h.rating] || ''}</div>
+          <button class="hi-delete" data-idx="${realIdx}" title="Delete">✕</button>
+        </div>
       `;
-      el.addEventListener('click', (e) => {
+
+      const mapWrap = document.createElement('div');
+      mapWrap.className = 'history-map-inline';
+      mapWrap.hidden = true;
+      mapWrap.innerHTML = `
+        <div class="history-map-canvas"></div>
+        <div class="history-map-stats"></div>
+      `;
+
+      item.addEventListener('click', (e) => {
         if (e.target.closest('.hi-delete')) return;
-        showHistoryMap(h);
+        const isHidden = mapWrap.hidden;
+        // close other maps
+        list.querySelectorAll('.history-map-inline').forEach(m => m.hidden = true);
+        if (isHidden) {
+          mapWrap.hidden = false;
+          const canvas = mapWrap.querySelector('.history-map-canvas');
+          const stats = mapWrap.querySelector('.history-map-stats');
+          renderHistoryMap(h, canvas, stats, mapWrap);
+        } else {
+          mapWrap.hidden = true;
+        }
       });
-      list.appendChild(el);
+
+      entry.appendChild(item);
+      entry.appendChild(mapWrap);
+      list.appendChild(entry);
     });
 
     list.querySelectorAll('.hi-delete').forEach(btn => {
@@ -483,14 +513,7 @@
     });
   }
 
-  function showHistoryMap(entry) {
-    const mapWrap = $('#history-map');
-    const mapTitle = $('#history-map-title');
-    const mapStats = $('#history-map-stats');
-    const mapCanvas = $('#history-map-canvas');
-
-    mapWrap.hidden = false;
-    mapTitle.textContent = entry.label;
+  function renderHistoryMap(entry, mapCanvas, mapStats, mapWrap) {
     mapStats.innerHTML = '';
 
     const stats = entry.trackStats;
@@ -503,45 +526,70 @@
     const jogColor = '#2E7D32';
     const walkColor = '#1E88E5';
 
-    if (!historyMap) {
-      historyMap = L.map(mapCanvas);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '&copy; OpenStreetMap'
-      }).addTo(historyMap);
-    } else {
-      historyMap.invalidateSize();
-    }
-
-    if (historyMapLayer) {
-      historyMap.removeLayer(historyMapLayer);
-    }
-
+    // Build segment groups with per-segment stats
     const segments = [];
     let current = [];
     let currentType = entry.track[0].type;
-    entry.track.forEach((p, i) => {
+    let segDistance = 0;
+    let segTime = 0;
+    for (let i = 1; i < entry.track.length; i++) {
+      const prev = entry.track[i - 1];
+      const p = entry.track[i];
       if (p.type !== currentType) {
-        if (current.length > 1) segments.push({ type: currentType, points: current });
+        if (current.length > 1) {
+          segments.push({ type: currentType, points: current, distance: segDistance, time: segTime });
+        }
         currentType = p.type;
         current = [];
+        segDistance = 0;
+        segTime = 0;
       }
+      if (current.length === 0) current.push([prev.lat, prev.lng]);
       current.push([p.lat, p.lng]);
+      segDistance += distanceMeters(prev, p);
+      segTime += Math.max(0, Math.floor((p.ts - prev.ts) / 1000));
       if (i === entry.track.length - 1 && current.length > 1) {
-        segments.push({ type: currentType, points: current });
+        segments.push({ type: currentType, points: current, distance: segDistance, time: segTime });
       }
-    });
+    }
 
-    historyMapLayer = L.layerGroup();
+    // Build or reuse map
+    let map = historyMaps.get(mapWrap);
+    if (!map) {
+      mapCanvas.innerHTML = '';
+      map = L.map(mapCanvas);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap'
+      }).addTo(map);
+      historyMaps.set(mapWrap, map);
+    } else {
+      map.invalidateSize();
+    }
+
+    if (map._c25kLayer) {
+      map.removeLayer(map._c25kLayer);
+    }
+
+    const layer = L.layerGroup();
     segments.forEach(seg => {
       const color = seg.type === 'warmup' ? warmupColor : seg.type === 'jog' ? jogColor : walkColor;
-      L.polyline(seg.points, { color, weight: 4, opacity: 0.9 }).addTo(historyMapLayer);
+      const poly = L.polyline(seg.points, { color, weight: 4, opacity: 0.9 }).addTo(layer);
+      const midIdx = Math.floor(seg.points.length / 2);
+      const mid = seg.points[midIdx];
+      const label = `
+        <div class="segment-label-line">${formatDistance(seg.distance)}</div>
+        <div class="segment-label-line">${formatDurationShort(seg.time)}</div>
+      `;
+      const icon = L.divIcon({ className: 'segment-label', html: label, iconSize: [76, 34] });
+      L.marker(mid, { icon }).addTo(layer);
     });
-    historyMapLayer.addTo(historyMap);
+    layer.addTo(map);
+    map._c25kLayer = layer;
 
     const allPoints = entry.track.map(p => [p.lat, p.lng]);
     const bounds = L.latLngBounds(allPoints);
-    historyMap.fitBounds(bounds, { padding: [20, 20] });
+    map.fitBounds(bounds, { padding: [20, 20] });
 
     const rows = [
       { label: 'Warmup walk', stats: stats.byType.warmup },
@@ -552,17 +600,101 @@
     rows.forEach(r => {
       const row = document.createElement('div');
       row.className = 'stat-row';
+      const pace = r.stats.distance > 0
+        ? formatPace(r.stats.time / (r.stats.distance / 1000)) + '/km'
+        : '—';
+      const swatch = r.label === 'Warmup walk' ? 'seg-warmup' : r.label === 'Jog' ? 'seg-jog' : r.label === 'Walk' ? 'seg-walk' : '';
       row.innerHTML = `
-        <span class="stat-label">${r.label}</span>
-        <span>${formatDistance(r.stats.distance)} • ${fmtDuration(r.stats.time)}</span>
+        <span class="stat-label"><span class="stat-swatch ${swatch}"></span>${r.label}</span>
+        <span>${formatDistance(r.stats.distance)} • ${formatDurationShort(r.stats.time)} • ${pace}</span>
       `;
       mapStats.appendChild(row);
+      if (r.label === 'Walk') {
+        const divider = document.createElement('div');
+        divider.className = 'stat-divider';
+        mapStats.appendChild(divider);
+      }
     });
   }
 
   // ─── EVENT WIRING ─────────────────────────────────────────
   function init() {
     data = getData();
+    if (!data.hasDummyHistory && data.history.length === 0) {
+      const now = Date.now();
+      const samples = [
+        {
+          label: 'Sample Workout A',
+          baseTs: now - 86400000,
+          track: [
+            { lat: 37.7749, lng: -122.4194, ts: 0, type: 'warmup' },
+            { lat: 37.7756, lng: -122.4187, ts: 2, type: 'warmup' },
+            { lat: 37.7762, lng: -122.4180, ts: 4, type: 'jog' },
+            { lat: 37.7768, lng: -122.4172, ts: 6, type: 'jog' },
+            { lat: 37.7773, lng: -122.4164, ts: 8, type: 'walk' },
+            { lat: 37.7778, lng: -122.4156, ts: 10, type: 'walk' },
+          ]
+        },
+        {
+          label: 'Sample Workout B',
+          baseTs: now - 2 * 86400000,
+          track: [
+            { lat: 37.7712, lng: -122.4231, ts: 0, type: 'warmup' },
+            { lat: 37.7719, lng: -122.4222, ts: 3, type: 'warmup' },
+            { lat: 37.7725, lng: -122.4213, ts: 6, type: 'jog' },
+            { lat: 37.7731, lng: -122.4204, ts: 9, type: 'jog' },
+            { lat: 37.7736, lng: -122.4196, ts: 12, type: 'walk' },
+            { lat: 37.7741, lng: -122.4188, ts: 15, type: 'walk' },
+          ]
+        },
+        {
+          label: 'Sample Workout C',
+          baseTs: now - 3 * 86400000,
+          track: [
+            { lat: 37.7791, lng: -122.4147, ts: 0, type: 'warmup' },
+            { lat: 37.7796, lng: -122.4139, ts: 2, type: 'warmup' },
+            { lat: 37.7802, lng: -122.4130, ts: 4, type: 'jog' },
+            { lat: 37.7807, lng: -122.4121, ts: 6, type: 'jog' },
+            { lat: 37.7812, lng: -122.4112, ts: 8, type: 'walk' },
+            { lat: 37.7816, lng: -122.4104, ts: 10, type: 'walk' },
+          ]
+        },
+        {
+          label: 'Sample Workout D',
+          baseTs: now - 4 * 86400000,
+          track: [
+            { lat: 37.7684, lng: -122.4262, ts: 0, type: 'warmup' },
+            { lat: 37.7690, lng: -122.4254, ts: 3, type: 'warmup' },
+            { lat: 37.7696, lng: -122.4246, ts: 6, type: 'jog' },
+            { lat: 37.7701, lng: -122.4238, ts: 9, type: 'jog' },
+            { lat: 37.7706, lng: -122.4230, ts: 12, type: 'walk' },
+            { lat: 37.7711, lng: -122.4222, ts: 15, type: 'walk' },
+          ]
+        }
+      ];
+
+      samples.forEach((s, i) => {
+        const track = s.track.map(p => ({
+          lat: p.lat,
+          lng: p.lng,
+          ts: s.baseTs + p.ts * 60000,
+          type: p.type,
+        }));
+        const stats = computeTrackStats(track);
+        data.history.push({
+          workoutIdx: i,
+          label: s.label,
+          date: new Date(s.baseTs).toISOString(),
+          duration: stats.totalTime,
+          rating: 4,
+          track,
+          trackStats: stats,
+        });
+      });
+
+      data.hasDummyHistory = true;
+      saveData(data);
+    }
     initSetup();
 
     if (!data.gpsPermissionAsked) {
@@ -620,9 +752,6 @@
 
     $('#history-back-btn').addEventListener('click', showHome);
 
-    $('#history-map-close').addEventListener('click', () => {
-      $('#history-map').hidden = true;
-    });
 
     const overviewEl = $('#program-overview');
     if (overviewEl) {
@@ -646,11 +775,6 @@
       if (confirm('Delete all workout history? This will reset your progress.')) {
         data.history = [];
         recalcCurrentWorkout();
-        if (historyMapLayer && historyMap) {
-          historyMap.removeLayer(historyMapLayer);
-          historyMapLayer = null;
-        }
-        $('#history-map').hidden = true;
         showHistory();
       }
     });

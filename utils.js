@@ -44,8 +44,22 @@
   };
 
   ns.formatDistance = function (meters) {
-    if (meters >= 1000) return `${(meters / 1000).toFixed(2)} km`;
     return `${Math.round(meters)} m`;
+  };
+
+  ns.formatDurationShort = function (sec) {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    if (m > 0 && s > 0) return `${m}min ${s}s`;
+    if (m > 0) return `${m}min`;
+    return `${s}s`;
+  };
+
+  ns.formatPace = function (secPerKm) {
+    if (!Number.isFinite(secPerKm) || secPerKm <= 0) return '—';
+    const m = Math.floor(secPerKm / 60);
+    const s = Math.round(secPerKm % 60);
+    return `${m}:${String(s).padStart(2, '0')}`;
   };
 
   ns.workoutLabel = function (w) {
@@ -120,6 +134,7 @@
     if (d.programOverviewOpen === undefined) d.programOverviewOpen = false;
     if (d.activeWorkoutState === undefined) d.activeWorkoutState = null;
     if (d.gpsPermissionAsked === undefined) d.gpsPermissionAsked = false;
+    if (d.hasDummyHistory === undefined) d.hasDummyHistory = false;
     return d;
   };
 
