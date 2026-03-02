@@ -448,13 +448,6 @@
     // Next workout day
     $('#next-workout-info').textContent = nextWorkoutText(data.workoutDays);
 
-    // Clean up stale overrides
-    if (hasOverride()) {
-      if (data.overrideWorkoutIdx === data.currentWorkout || data.overrideWorkoutIdx >= PLAN.length) {
-        data.overrideWorkoutIdx = null;
-        saveData(data);
-      }
-    }
     const overrideActive = hasOverride();
     const idx = getRecommendedIndex();
     if (idx >= PLAN.length) {
