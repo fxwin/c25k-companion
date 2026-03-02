@@ -163,25 +163,26 @@
       <div class="stats-charts">
         <div class="stats-card">
           <div class="stats-card-title">Distance (last 10)</div>
-          <div id="stats-distance-chart" class="stats-chart"></div>
+          <canvas id="stats-distance-chart" class="stats-chart" aria-label="Distance chart" role="img"></canvas>
         </div>
         <div class="stats-card">
           <div class="stats-card-title">Jog Pace (last 10)</div>
-          <div id="stats-pace-chart" class="stats-chart"></div>
+          <canvas id="stats-pace-chart" class="stats-chart" aria-label="Jog pace chart" role="img"></canvas>
         </div>
         <div class="stats-card">
           <div class="stats-card-title">Mood (last 10)</div>
-          <div id="stats-mood-chart" class="stats-chart"></div>
+          <canvas id="stats-mood-chart" class="stats-chart" aria-label="Mood chart" role="img"></canvas>
         </div>
         <div class="stats-card">
           <div class="stats-card-title">Mood Distribution</div>
-          <div id="stats-mood-dist" class="stats-chart"></div>
+          <canvas id="stats-mood-dist" class="stats-chart" aria-label="Mood distribution" role="img"></canvas>
         </div>
       </div>
     </div>
   </section>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="plan.js"></script>
   <script src="utils.js"></script>
   <script src="ui.js"></script>

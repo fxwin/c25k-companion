@@ -30,6 +30,7 @@
   let watchId = null;
   let track = [];
   const historyMaps = new WeakMap();
+  const statsCharts = {};
 
   function persistWorkoutState(status) {
     if (activeWorkoutIdx === null) return;
@@ -531,46 +532,98 @@
     return jog.time / (jog.distance / 1000);
   }
 
-  function renderLineChart(container, values, color) {
-    if (!values || values.length === 0) {
-      container.innerHTML = '<div class="hint">No data</div>';
-      return;
+  function destroyChart(key) {
+    if (statsCharts[key]) {
+      statsCharts[key].destroy();
+      statsCharts[key] = null;
     }
-    const w = 320;
-    const h = 120;
-    const pad = 12;
-    const min = Math.min(...values);
-    const max = Math.max(...values);
-    const range = max - min || 1;
-    const points = values.map((v, i) => {
-      const x = pad + (i / (values.length - 1 || 1)) * (w - pad * 2);
-      const y = h - pad - ((v - min) / range) * (h - pad * 2);
-      return `${x.toFixed(1)},${y.toFixed(1)}`;
-    }).join(' ');
-    container.innerHTML = `
-      <svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" role="img">
-        <polyline fill="none" stroke="${color}" stroke-width="3" points="${points}" />
-      </svg>
-    `;
   }
 
-  function renderBarChart(container, counts) {
-    const w = 320;
-    const h = 120;
-    const pad = 12;
-    const max = Math.max(...counts, 1);
-    const barW = (w - pad * 2) / counts.length;
-    const bars = counts.map((c, i) => {
-      const barH = (c / max) * (h - pad * 2);
-      const x = pad + i * barW + 6;
-      const y = h - pad - barH;
-      return `<rect x="${x}" y="${y}" width="${barW - 12}" height="${barH}" fill="#43A047" rx="4" />`;
-    }).join('');
-    container.innerHTML = `
-      <svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" role="img">
-        ${bars}
-      </svg>
-    `;
+  function setChartEmpty(canvas, message) {
+    const parent = canvas.parentElement;
+    canvas.hidden = true;
+    let hint = parent.querySelector('.chart-hint');
+    if (!hint) {
+      hint = document.createElement('div');
+      hint.className = 'hint chart-hint';
+      parent.appendChild(hint);
+    }
+    hint.textContent = message || 'No data';
+  }
+
+  function clearChartEmpty(canvas) {
+    const parent = canvas.parentElement;
+    const hint = parent.querySelector('.chart-hint');
+    if (hint) hint.remove();
+    canvas.hidden = false;
+  }
+
+  function renderLineChart(canvas, values, color, yTickFormatter) {
+    if (!values || values.length === 0) {
+      destroyChart(canvas.id);
+      setChartEmpty(canvas, 'No data');
+      return;
+    }
+    clearChartEmpty(canvas);
+    destroyChart(canvas.id);
+    const labels = values.map((_, i) => i + 1);
+    statsCharts[canvas.id] = new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          data: values,
+          borderColor: color,
+          backgroundColor: 'transparent',
+          pointRadius: 2,
+          pointHoverRadius: 3,
+          tension: 0.3,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: {
+            ticks: { callback: () => '' },
+            grid: { display: false },
+            border: { display: false }
+          },
+          y: {
+            ticks: { callback: yTickFormatter, maxTicksLimit: 5 },
+            grid: { color: '#EEEEEE' },
+            border: { display: false },
+            afterFit: scale => { scale.width = 46; }
+          }
+        }
+      }
+    });
+  }
+
+  function renderBarChart(canvas, labels, counts, color) {
+    destroyChart(canvas.id);
+    clearChartEmpty(canvas);
+    statsCharts[canvas.id] = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          data: counts,
+          backgroundColor: color,
+          borderRadius: 4,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { font: { size: 12 } }, grid: { display: false }, border: { display: false } },
+          y: { ticks: { precision: 0, maxTicksLimit: 5 }, grid: { color: '#EEEEEE' }, border: { display: false }, afterFit: scale => { scale.width = 46; } }
+        }
+      }
+    });
   }
 
   function showStats() {
@@ -584,10 +637,14 @@
     const history = [...data.history].slice(-10);
     if (history.length === 0) {
       summary.innerHTML = '<div class="hint">No workouts yet.</div>';
-      distanceChart.innerHTML = '';
-      paceChart.innerHTML = '';
-      moodChart.innerHTML = '';
-      moodDist.innerHTML = '';
+      destroyChart('stats-distance-chart');
+      destroyChart('stats-pace-chart');
+      destroyChart('stats-mood-chart');
+      destroyChart('stats-mood-dist');
+      setChartEmpty(distanceChart, 'No data');
+      setChartEmpty(paceChart, 'No data');
+      setChartEmpty(moodChart, 'No data');
+      setChartEmpty(moodDist, 'No data');
       return;
     }
 
@@ -619,13 +676,17 @@
       </div>
     `;
 
-    renderLineChart(distanceChart, distances, '#2E7D32');
-    if (jogPaces.length > 0) renderLineChart(paceChart, jogPaces, '#1E88E5');
-    else paceChart.innerHTML = '<div class="hint">No jog data</div>';
-    renderLineChart(moodChart, moods.map(m => m || 0.1), '#FB8C00');
+    renderLineChart(distanceChart, distances, '#2E7D32', v => formatDistance(v));
+    if (jogPaces.length > 0) {
+      renderLineChart(paceChart, jogPaces, '#1E88E5', v => formatPace(v) + '/km');
+    } else {
+      destroyChart('stats-pace-chart');
+      setChartEmpty(paceChart, 'No jog data');
+    }
+    renderLineChart(moodChart, moods.map(m => m || 0), '#FB8C00', v => v.toFixed(0));
 
     const moodCounts = [1, 2, 3, 4, 5].map(v => moods.filter(m => m === v).length);
-    renderBarChart(moodDist, moodCounts);
+    renderBarChart(moodDist, ['😫', '😕', '😐', '🙂', '😄'], moodCounts, '#43A047');
   }
 
   function renderHistoryMap(entry, mapCanvas, mapStats, mapWrap) {
