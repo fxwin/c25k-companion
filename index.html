@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#2E7D32">
+  <title>C25K Companion</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- SETUP SCREEN -->
+  <section id="setup-screen" class="screen" hidden>
+    <div class="container">
+      <h1>🏃 Couch to 5K</h1>
+      <p class="subtitle">Welcome! Pick your 3 workout days to get started.</p>
+      <div id="day-picker" class="day-picker">
+        <button class="day-btn" data-day="1">Mon</button>
+        <button class="day-btn" data-day="2">Tue</button>
+        <button class="day-btn" data-day="3">Wed</button>
+        <button class="day-btn" data-day="4">Thu</button>
+        <button class="day-btn" data-day="5">Fri</button>
+        <button class="day-btn" data-day="6">Sat</button>
+        <button class="day-btn" data-day="0">Sun</button>
+      </div>
+      <p id="day-hint" class="hint">Select exactly 3 days</p>
+      <button id="setup-done-btn" class="btn btn-primary" disabled>Let's Go!</button>
+    </div>
+  </section>
+
+  <!-- HOME SCREEN -->
+  <section id="home-screen" class="screen" hidden>
+    <div class="container">
+      <header class="home-header">
+        <h1>🏃 C25K</h1>
+        <div id="race-countdown" class="race-countdown"></div>
+      </header>
+
+      <div id="next-workout-info" class="next-workout-info"></div>
+
+      <div class="card recommended-card">
+        <div class="card-label">Recommended Workout</div>
+        <h2 id="workout-title"></h2>
+        <p id="workout-desc" class="workout-desc"></p>
+        <div id="workout-preview-timeline" class="timeline-preview"></div>
+        <div id="workout-total-time" class="workout-total-time"></div>
+        <button id="start-btn" class="btn btn-primary btn-large">Start Workout</button>
+      </div>
+
+      <div id="program-complete-msg" class="card" hidden>
+        <h2>🎉 Program Complete!</h2>
+        <p>You've completed all 27 workouts. You're ready for your 5K!</p>
+      </div>
+
+      <button id="history-btn" class="btn btn-secondary">View History</button>
+      <button id="settings-btn" class="btn btn-link">Change Workout Days</button>
+    </div>
+  </section>
+
+  <!-- WORKOUT SCREEN -->
+  <section id="workout-screen" class="screen" hidden>
+    <div class="container workout-container">
+      <div class="workout-header">
+        <button id="workout-back-btn" class="btn btn-icon">✕</button>
+        <h2 id="active-workout-title"></h2>
+      </div>
+
+      <div id="segment-display" class="segment-display">
+        <div id="segment-type" class="segment-type">Warmup</div>
+        <div id="segment-timer" class="segment-timer">5:00</div>
+        <div id="segment-remaining" class="segment-remaining"></div>
+      </div>
+
+      <div id="total-progress" class="total-progress">
+        <div id="total-progress-bar" class="progress-bar"></div>
+      </div>
+      <div id="total-time-display" class="total-time-display"></div>
+
+      <div id="active-timeline" class="active-timeline"></div>
+
+      <div class="workout-controls">
+        <button id="ctrl-restart" class="btn btn-secondary">Restart</button>
+        <button id="ctrl-start-stop" class="btn btn-primary btn-large">Start</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMPLETE SCREEN -->
+  <section id="complete-screen" class="screen" hidden>
+    <div class="container">
+      <div class="complete-celebration">🎉</div>
+      <h1>Workout Complete!</h1>
+      <p id="complete-workout-name"></p>
+      <p id="complete-duration"></p>
+
+      <div class="rating-section">
+        <p class="rating-label">How did you feel?</p>
+        <div id="rating-buttons" class="rating-buttons">
+          <button class="rating-btn" data-rating="1">1<span>😫</span></button>
+          <button class="rating-btn" data-rating="2">2<span>😕</span></button>
+          <button class="rating-btn" data-rating="3">3<span>😐</span></button>
+          <button class="rating-btn" data-rating="4">4<span>🙂</span></button>
+          <button class="rating-btn" data-rating="5">5<span>😄</span></button>
+        </div>
+      </div>
+
+      <button id="complete-done-btn" class="btn btn-primary btn-large" disabled>Save & Continue</button>
+    </div>
+  </section>
+
+  <!-- HISTORY SCREEN -->
+  <section id="history-screen" class="screen" hidden>
+    <div class="container">
+      <div class="workout-header">
+        <button id="history-back-btn" class="btn btn-icon">← Back</button>
+        <h2>Workout History</h2>
+      </div>
+
+      <div id="history-list" class="history-list"></div>
+      <p id="history-empty" class="hint" hidden>No workouts logged yet.</p>
+    </div>
+  </section>
+
+  <script src="app.js"></script>
+</body>
+</html>
