@@ -160,22 +160,32 @@
 
       <div id="stats-summary" class="stats-summary"></div>
 
+      <div class="stats-toggle-wrap">
+        <div id="stats-toggle" class="stats-switch">
+          <div class="stats-switch-bg">
+            <span class="stats-switch-label" data-val="10">Last 10</span>
+            <span class="stats-switch-label" data-val="all">All</span>
+          </div>
+          <div class="stats-switch-thumb"></div>
+        </div>
+      </div>
+
       <div class="stats-charts">
         <div class="stats-card">
-          <div class="stats-card-title">Distance (last 10)</div>
-          <canvas id="stats-distance-chart" class="stats-chart" aria-label="Distance chart" role="img"></canvas>
+          <div id="stats-distance-title" class="stats-card-title">Distance (last 10)</div>
+          <div class="stats-chart-wrap"><canvas id="stats-distance-chart" aria-label="Distance chart" role="img"></canvas></div>
         </div>
         <div class="stats-card">
-          <div class="stats-card-title">Jog Pace (last 10)</div>
-          <canvas id="stats-pace-chart" class="stats-chart" aria-label="Jog pace chart" role="img"></canvas>
+          <div id="stats-pace-title" class="stats-card-title">Jog Pace (last 10)</div>
+          <div class="stats-chart-wrap"><canvas id="stats-pace-chart" aria-label="Jog pace chart" role="img"></canvas></div>
         </div>
         <div class="stats-card">
-          <div class="stats-card-title">Mood (last 10)</div>
-          <canvas id="stats-mood-chart" class="stats-chart" aria-label="Mood chart" role="img"></canvas>
+          <div id="stats-mood-title" class="stats-card-title">Mood (last 10)</div>
+          <div class="stats-chart-wrap"><canvas id="stats-mood-chart" aria-label="Mood chart" role="img"></canvas></div>
         </div>
         <div class="stats-card">
           <div class="stats-card-title">Mood Distribution</div>
-          <canvas id="stats-mood-dist" class="stats-chart" aria-label="Mood distribution" role="img"></canvas>
+          <div class="stats-chart-wrap"><canvas id="stats-mood-dist" aria-label="Mood distribution" role="img"></canvas></div>
         </div>
       </div>
     </div>

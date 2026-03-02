@@ -150,8 +150,30 @@ h2 { font-size: 1.25rem; font-weight: 600; }
   padding: 0.75rem;
 }
 .stats-card-title { font-size: 0.8rem; font-weight: 700; color: var(--gray-700); margin-bottom: 0.5rem; }
+.stats-toggle-wrap { display: flex; justify-content: flex-end; margin-bottom: 0.75rem; }
+.stats-switch {
+  position: relative; display: inline-flex; width: 140px; height: 32px;
+  background: var(--gray-100); border: 1px solid var(--gray-300);
+  border-radius: 999px; cursor: pointer; user-select: none;
+}
+.stats-switch-bg {
+  position: relative; z-index: 1; display: flex; width: 100%; height: 100%;
+}
+.stats-switch-label {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  font-size: 0.75rem; font-weight: 600; color: var(--gray-600);
+  transition: color 0.2s;
+}
+.stats-switch-label.active { color: var(--white); }
+.stats-switch-thumb {
+  position: absolute; top: 2px; left: 2px; width: calc(50% - 2px); height: calc(100% - 4px);
+  background: var(--green-dark); border-radius: 999px;
+  transition: transform 0.25s ease;
+}
+.stats-switch.on .stats-switch-thumb { transform: translateX(100%); }
 .stats-charts { display: grid; gap: 0.75rem; }
-.stats-chart { width: 100%; height: 140px; display: block; }
+.stats-chart-wrap { position: relative; height: 140px; width: 100%; }
+.stats-chart-wrap canvas { position: absolute; top: 0; left: 0; width: 100% !important; height: 100% !important; }
 .stats-metric {
   display: grid; gap: 0.15rem;
   font-size: 0.8rem; color: var(--gray-700);

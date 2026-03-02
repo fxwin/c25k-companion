@@ -558,7 +558,7 @@
     canvas.hidden = false;
   }
 
-  function renderLineChart(canvas, values, color, yTickFormatter) {
+  function renderLineChart(canvas, values, color, yTickFormatter, opts) {
     if (!values || values.length === 0) {
       destroyChart(canvas.id);
       setChartEmpty(canvas, 'No data');
@@ -567,6 +567,7 @@
     clearChartEmpty(canvas);
     destroyChart(canvas.id);
     const labels = values.map((_, i) => i + 1);
+    const yAxisWidth = (opts && opts.yAxisWidth) || 46;
     statsCharts[canvas.id] = new Chart(canvas, {
       type: 'line',
       data: {
@@ -591,10 +592,11 @@
             border: { display: false }
           },
           y: {
-            ticks: { callback: yTickFormatter, maxTicksLimit: 5 },
-            grid: { color: '#EEEEEE' },
+            ticks: { callback: yTickFormatter, maxTicksLimit: 5, ...(opts && opts.yTicks || {}) },
+            grid: (opts && opts.yGrid) || { color: '#EEEEEE' },
             border: { display: false },
-            afterFit: scale => { scale.width = 46; }
+            afterFit: scale => { scale.width = yAxisWidth; },
+            ...(opts && opts.yScale || {})
           }
         }
       }
@@ -626,15 +628,31 @@
     });
   }
 
+  let statsShowAll = false;
+
   function showStats() {
     showScreen('#stats-screen');
+    renderStats();
+  }
+
+  function renderStats() {
     const summary = $('#stats-summary');
     const distanceChart = $('#stats-distance-chart');
     const paceChart = $('#stats-pace-chart');
     const moodChart = $('#stats-mood-chart');
     const moodDist = $('#stats-mood-dist');
+    const toggleEl = $('#stats-toggle');
+    if (statsShowAll) toggleEl.classList.add('on');
+    else toggleEl.classList.remove('on');
+    toggleEl.querySelectorAll('.stats-switch-label').forEach(l => {
+      l.classList.toggle('active', (l.dataset.val === 'all') === statsShowAll);
+    });
+    const rangeLabel = statsShowAll ? 'all' : 'last 10';
+    $('#stats-distance-title').textContent = `Distance (${rangeLabel})`;
+    $('#stats-pace-title').textContent = `Jog Pace (${rangeLabel})`;
+    $('#stats-mood-title').textContent = `Mood (${rangeLabel})`;
 
-    const history = [...data.history].slice(-10);
+    const history = statsShowAll ? [...data.history] : [...data.history].slice(-10);
     if (history.length === 0) {
       summary.innerHTML = '<div class="hint">No workouts yet.</div>';
       destroyChart('stats-distance-chart');
@@ -678,12 +696,24 @@
 
     renderLineChart(distanceChart, distances, '#2E7D32', v => formatDistance(v));
     if (jogPaces.length > 0) {
-      renderLineChart(paceChart, jogPaces, '#1E88E5', v => formatPace(v) + '/km');
+      renderLineChart(paceChart, jogPaces, '#1E88E5', v => formatPace(v) + '/km', { yAxisWidth: 64 });
     } else {
       destroyChart('stats-pace-chart');
       setChartEmpty(paceChart, 'No jog data');
     }
-    renderLineChart(moodChart, moods.map(m => m || 0), '#FB8C00', v => v.toFixed(0));
+    const moodEmojis = ['', '😫', '😕', '😐', '🙂', '😄'];
+    renderLineChart(moodChart, moods.map(m => m || 0), '#FB8C00', v => {
+      const i = Math.round(v);
+      return moodEmojis[i] || '';
+    }, {
+      yAxisWidth: 28,
+      yTicks: { stepSize: 1 },
+      yScale: { min: 1, max: 5 },
+      yGrid: {
+        color: ctx => ctx.tick.value === 3 ? '#999999' : '#EEEEEE',
+        lineWidth: ctx => ctx.tick.value === 3 ? 2 : 1
+      }
+    });
 
     const moodCounts = [1, 2, 3, 4, 5].map(v => moods.filter(m => m === v).length);
     renderBarChart(moodDist, ['😫', '😕', '😐', '🙂', '😄'], moodCounts, '#43A047');
@@ -927,6 +957,10 @@
     });
     $('#history-btn').addEventListener('click', showHistory);
     $('#stats-btn').addEventListener('click', showStats);
+    $('#stats-toggle').addEventListener('click', () => {
+      statsShowAll = !statsShowAll;
+      renderStats();
+    });
     $('#settings-btn').addEventListener('click', () => {
       selectedDays = new Set(data.workoutDays || []);
       $$('.day-btn').forEach(b => {
