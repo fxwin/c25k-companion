@@ -42,7 +42,7 @@ def main():
         raise SystemExit("Missing scripts/voicelines.json")
 
     voicelines = json.loads(lines_path.read_text())
-    out_dir = base_dir / "audio"
+    out_dir = base_dir / "public" / "audio"
     out_dir.mkdir(exist_ok=True)
 
     client = ElevenLabs(api_key=api_key)

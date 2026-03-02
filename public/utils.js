@@ -163,7 +163,7 @@
     const diff = raceDate - now;
     if (diff <= 0) return 'Race day!';
     const days = Math.ceil(diff / 86400000);
-    return `${days} day${days === 1 ? '' : 's'} to race`;
+    return `${days} day${days === 1 ? '' : 's'} to go!`;
   };
 
   // ─── Next workout day text ─────────────────────────────────
