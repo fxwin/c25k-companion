@@ -101,6 +101,7 @@
     if (d.raceDate === undefined) d.raceDate = null;
     if (d.overrideWorkoutIdx === undefined) d.overrideWorkoutIdx = null;
     if (d.programOverviewOpen === undefined) d.programOverviewOpen = false;
+    if (d.activeWorkoutState === undefined) d.activeWorkoutState = null;
     return d;
   };
 

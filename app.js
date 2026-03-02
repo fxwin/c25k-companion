@@ -15,6 +15,7 @@
   // ─── APP STATE ─────────────────────────────────────────────
   let data = getData();
   let activeWorkout = null;
+  let activeWorkoutIdx = null;
   let timerInterval = null;
   let segIdx = 0;
   let segElapsed = 0;
@@ -23,21 +24,105 @@
   let selectedRating = 0;
   let transitionCountdown = 0;
   const TRANSITION_SECS = 5;
+  let selectedDays = new Set();
+
+  function persistWorkoutState(status) {
+    if (activeWorkoutIdx === null) return;
+    data.activeWorkoutState = {
+      status: status || 'in-progress',
+      workoutIdx: activeWorkoutIdx,
+      segIdx,
+      segElapsed,
+      totalElapsed,
+      transitionCountdown,
+      isRunning,
+      lastTs: Date.now(),
+    };
+    saveData(data);
+  }
+
+  function clearWorkoutState() {
+    data.activeWorkoutState = null;
+    saveData(data);
+  }
+
+  function advanceBySeconds(seconds) {
+    let remaining = seconds;
+    while (remaining > 0 && activeWorkout) {
+      if (transitionCountdown > 0) {
+        const step = Math.min(remaining, transitionCountdown);
+        transitionCountdown -= step;
+        remaining -= step;
+        continue;
+      }
+
+      const seg = activeWorkout.segments[segIdx];
+      const segRemain = seg.duration - segElapsed;
+      const step = Math.min(remaining, segRemain);
+      segElapsed += step;
+      totalElapsed += step;
+      remaining -= step;
+
+      if (segElapsed >= seg.duration) {
+        segIdx++;
+        segElapsed = 0;
+        if (segIdx >= activeWorkout.segments.length) {
+          isRunning = false;
+          break;
+        }
+        transitionCountdown = TRANSITION_SECS;
+      }
+    }
+  }
+
+  function restoreWorkoutState() {
+    const state = data.activeWorkoutState;
+    if (!state || state.workoutIdx === null || state.workoutIdx === undefined) return false;
+    if (state.workoutIdx >= PLAN.length) { clearWorkoutState(); return false; }
+
+    activeWorkoutIdx = state.workoutIdx;
+    activeWorkout = PLAN[activeWorkoutIdx];
+    segIdx = state.segIdx || 0;
+    segElapsed = state.segElapsed || 0;
+    totalElapsed = state.totalElapsed || 0;
+    transitionCountdown = state.transitionCountdown || 0;
+    isRunning = !!state.isRunning;
+
+    if (isRunning && state.lastTs) {
+      const delta = Math.max(0, Math.floor((Date.now() - state.lastTs) / 1000));
+      if (delta > 0) advanceBySeconds(delta);
+    }
+
+    if (state.status === 'complete' || segIdx >= activeWorkout.segments.length) {
+      stopTimer();
+      showComplete();
+      persistWorkoutState('complete');
+      return true;
+    }
+
+    showScreen('#workout-screen');
+    $('#active-workout-title').textContent = workoutLabel(activeWorkout);
+    renderWorkoutState();
+    updateControls();
+
+    if (isRunning) startTimer();
+    return true;
+  }
 
   // ─── SETUP SCREEN ─────────────────────────────────────────
   function initSetup() {
-    const selected = new Set();
+    selectedDays = new Set();
     $$('.day-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const day = Number(btn.dataset.day);
-        if (selected.has(day)) { selected.delete(day); btn.classList.remove('selected'); }
-        else if (selected.size < 3) { selected.add(day); btn.classList.add('selected'); }
-        $('#setup-done-btn').disabled = selected.size !== 3;
-        $('#day-hint').textContent = selected.size === 3 ? 'Great choices!' : `Select ${3 - selected.size} more`;
+        if (selectedDays.has(day)) { selectedDays.delete(day); btn.classList.remove('selected'); }
+        else if (selectedDays.size < 3) { selectedDays.add(day); btn.classList.add('selected'); }
+        $('#setup-done-btn').disabled = selectedDays.size !== 3;
+        $('#day-hint').textContent = selectedDays.size === 3 ? 'Great choices!' : `Select ${3 - selectedDays.size} more`;
       });
     });
     $('#setup-done-btn').addEventListener('click', () => {
-      data.workoutDays = [...selected];
+      data.workoutDays = [...selectedDays];
       const raceDateVal = $('#race-date-input').value;
       data.raceDate = raceDateVal || null;
       saveData(data);
@@ -97,17 +182,20 @@
   }
 
   // ─── WORKOUT SCREEN ───────────────────────────────────────
-  function startWorkout(workout) {
-    activeWorkout = workout;
+  function startWorkout(idx) {
+    activeWorkoutIdx = idx;
+    activeWorkout = PLAN[idx];
     segIdx = 0;
     segElapsed = 0;
     totalElapsed = 0;
     isRunning = false;
+    transitionCountdown = 0;
 
     showScreen('#workout-screen');
-    $('#active-workout-title').textContent = workoutLabel(workout);
+    $('#active-workout-title').textContent = workoutLabel(activeWorkout);
     renderWorkoutState();
     updateControls();
+    persistWorkoutState('in-progress');
   }
 
   function renderWorkoutState() {
@@ -154,6 +242,7 @@
         vibrate([200, 100, 200]);
       }
       renderWorkoutState();
+      if (isRunning) persistWorkoutState('in-progress');
       return;
     }
 
@@ -169,6 +258,7 @@
         beepDone();
         vibrate([200, 100, 200, 100, 400]);
         showComplete();
+        persistWorkoutState('complete');
         return;
       }
       transitionCountdown = TRANSITION_SECS;
@@ -176,6 +266,7 @@
     }
 
     renderWorkoutState();
+    if (isRunning) persistWorkoutState('in-progress');
   }
 
   function startTimer() {
@@ -185,6 +276,7 @@
     isRunning = true;
     timerInterval = setInterval(tick, 1000);
     updateControls();
+    persistWorkoutState('in-progress');
   }
 
   function stopTimer() {
@@ -192,6 +284,7 @@
     clearInterval(timerInterval);
     timerInterval = null;
     updateControls();
+    persistWorkoutState('in-progress');
   }
 
   function restartWorkout() {
@@ -202,6 +295,7 @@
     transitionCountdown = 0;
     renderWorkoutState();
     updateControls();
+    persistWorkoutState('in-progress');
   }
 
   function updateControls() {
@@ -222,6 +316,7 @@
     $('#complete-done-btn').disabled = true;
     $('#complete-workout-name').textContent = workoutLabel(activeWorkout);
     $('#complete-duration').textContent = `Duration: ${fmtDuration(totalElapsed)}`;
+    persistWorkoutState('complete');
   }
 
   function saveCompleted() {
@@ -238,7 +333,9 @@
     }
     data.overrideWorkoutIdx = null;
     saveData(data);
+    clearWorkoutState();
     activeWorkout = null;
+    activeWorkoutIdx = null;
     showHome();
   }
 
@@ -304,13 +401,18 @@
 
     $('#start-btn').addEventListener('click', () => {
       const idx = getRecommendedIndex(data);
-      if (idx < PLAN.length) startWorkout(PLAN[idx]);
+      if (idx < PLAN.length) startWorkout(idx);
     });
     $('#history-btn').addEventListener('click', showHistory);
     $('#settings-btn').addEventListener('click', () => {
-      $$('.day-btn').forEach(b => b.classList.remove('selected'));
-      $('#setup-done-btn').disabled = true;
-      $('#day-hint').textContent = 'Select exactly 3 days';
+      selectedDays = new Set(data.workoutDays || []);
+      $$('.day-btn').forEach(b => {
+        const day = Number(b.dataset.day);
+        if (selectedDays.has(day)) b.classList.add('selected');
+        else b.classList.remove('selected');
+      });
+      $('#setup-done-btn').disabled = selectedDays.size !== 3;
+      $('#day-hint').textContent = selectedDays.size === 3 ? 'Great choices!' : `Select ${3 - selectedDays.size} more`;
       $('#race-date-input').value = data.raceDate || '';
       $('#setup-back-btn').hidden = false;
       showScreen('#setup-screen');
@@ -322,6 +424,9 @@
     $('#ctrl-restart').addEventListener('click', restartWorkout);
     $('#workout-back-btn').addEventListener('click', () => {
       stopTimer();
+      clearWorkoutState();
+      activeWorkout = null;
+      activeWorkoutIdx = null;
       showHome();
     });
 
@@ -363,7 +468,9 @@
       }
     });
 
-    showHome();
+    if (!restoreWorkoutState()) {
+      showHome();
+    }
   }
 
   // ─── Wake lock ─────────────────────────────────────────────
