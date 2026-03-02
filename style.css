@@ -78,11 +78,24 @@ h2 { font-size: 1.25rem; font-weight: 600; }
 .race-date-field {
   margin: 1rem 0;
 }
+.audio-field {
+  margin: 1rem 0;
+}
 .race-date-field label {
   display: block; font-size: 0.85rem; font-weight: 600;
   color: var(--gray-600); margin-bottom: 0.25rem;
 }
+.audio-field label {
+  display: block; font-size: 0.85rem; font-weight: 600;
+  color: var(--gray-600); margin-bottom: 0.25rem;
+}
 .race-date-field input {
+  width: 100%; padding: 0.5rem 0.75rem;
+  border: 2px solid var(--gray-400); border-radius: var(--radius);
+  font-size: 0.9rem; color: var(--gray-800);
+  background: var(--white);
+}
+.audio-field select {
   width: 100%; padding: 0.5rem 0.75rem;
   border: 2px solid var(--gray-400); border-radius: var(--radius);
   font-size: 0.9rem; color: var(--gray-800);

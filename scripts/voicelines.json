@@ -1,0 +1,23 @@
+{
+  "start_warmup": "Start with warming up for 5 Minutes.",
+  "start_now": "Start now",
+  "workout_done": "You did it, good job! How do you feel?",
+  "get_ready_jog_60": "Get ready to jog for 1 minute.",
+  "get_ready_jog_90": "Get ready to jog for 1 minute 30 seconds.",
+  "get_ready_jog_180": "Get ready to jog for 3 minutes.",
+  "get_ready_jog_300": "Get ready to jog for 5 minutes.",
+  "get_ready_jog_480": "Get ready to jog for 8 minutes.",
+  "get_ready_jog_600": "Get ready to jog for 10 minutes.",
+  "get_ready_jog_1200": "Get ready to jog for 20 minutes.",
+  "get_ready_jog_1500": "Get ready to jog for 25 minutes.",
+  "get_ready_jog_1680": "Get ready to jog for 28 minutes.",
+  "get_ready_jog_1800": "Get ready to jog for 30 minutes.",
+  "get_ready_jog_1500_nowalk": "Get ready to jog for 25 minutes. No walking!",
+  "get_ready_jog_1680_nowalk": "Get ready to jog for 28 minutes. No walking!",
+  "get_ready_jog_1800_nowalk": "Get ready to jog for 30 minutes. No walking!",
+  "get_ready_walk_90": "Get ready to walk for 1 minute 30 seconds.",
+  "get_ready_walk_120": "Get ready to walk for 2 minutes.",
+  "get_ready_walk_150": "Get ready to walk for 2 minutes 30 seconds.",
+  "get_ready_walk_180": "Get ready to walk for 3 minutes.",
+  "get_ready_walk_300": "Get ready to walk for 5 minutes."
+}

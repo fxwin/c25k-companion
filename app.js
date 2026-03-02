@@ -5,13 +5,13 @@
 
   const ns = window.C25K;
   const PLAN = ns.PLAN;
-      const { $, $$, fmtTime, formatDurationShort, formatPace, totalDuration, workoutLabel,
-        saveData, getData, hasOverride, getRecommendedIndex, getDevMode, setDevMode,
-            raceCountdownText, nextWorkoutText,
-            distanceMeters, formatDistance,
-            beep, beepTransition, beepDone, vibrate,
-            showScreen, buildTimelineBar, buildActiveTimeline,
-            buildProgramOverview } = ns;
+  const { $, $$, fmtTime, formatDurationShort, formatPace, totalDuration, workoutLabel,
+          saveData, getData, hasOverride, getRecommendedIndex, getDevMode, setDevMode,
+          raceCountdownText, nextWorkoutText,
+          distanceMeters, formatDistance,
+          beep, beepTransition, beepDone, vibrate,
+          showScreen, buildTimelineBar, buildActiveTimeline,
+          buildProgramOverview } = ns;
 
   // ─── APP STATE ─────────────────────────────────────────────
   let data = getData();
@@ -31,6 +31,7 @@
   let track = [];
   const historyMaps = new WeakMap();
   const statsCharts = {};
+  const audioCache = {};
 
   function persistWorkoutState(status) {
     if (activeWorkoutIdx === null) return;
@@ -50,6 +51,26 @@
   function clearWorkoutState() {
     data.activeWorkoutState = null;
     saveData(data);
+  }
+
+  function getVoiceKeyForReady(nextSeg, workoutWeek) {
+    if (!nextSeg) return null;
+    const dur = nextSeg.duration;
+    const base = `get_ready_${nextSeg.type}_${dur}`;
+    if (nextSeg.type === 'jog' && workoutWeek >= 7) return `${base}_nowalk`;
+    return base;
+  }
+
+  function playVoice(key) {
+    if (!key || data.audioMode === 'mute' || data.audioMode === 'beeps') return;
+    const path = `audio/${data.audioMode}/${key}.mp3`;
+    let audio = audioCache[path];
+    if (!audio) {
+      audio = new Audio(path);
+      audioCache[path] = audio;
+    }
+    audio.currentTime = 0;
+    audio.play().catch(() => {});
   }
 
   function currentSegmentType() {
@@ -184,6 +205,14 @@
   // ─── SETUP SCREEN ─────────────────────────────────────────
   function initSetup() {
     selectedDays = new Set();
+    const audioSelect = $('#audio-mode');
+    if (audioSelect) {
+      audioSelect.value = data.audioMode || 'beeps';
+      audioSelect.addEventListener('change', () => {
+        data.audioMode = audioSelect.value;
+        saveData(data);
+      });
+    }
     $$('.day-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const day = Number(btn.dataset.day);
@@ -197,6 +226,7 @@
       data.workoutDays = [...selectedDays];
       const raceDateVal = $('#race-date-input').value;
       data.raceDate = raceDateVal || null;
+      if (audioSelect) data.audioMode = audioSelect.value;
       saveData(data);
       showHome();
     });
@@ -286,6 +316,7 @@
     renderWorkoutState();
     updateControls();
     persistWorkoutState('in-progress');
+    playVoice('start_warmup');
   }
 
   function renderWorkoutState() {
@@ -331,7 +362,11 @@
         if (suppressTransitionAlert) {
           suppressTransitionAlert = false;
         } else {
-          beepTransition();
+          if (data.audioMode === 'beeps') {
+            beepTransition();
+          } else {
+            playVoice('start_now');
+          }
           vibrate([200, 100, 200]);
         }
       }
@@ -349,14 +384,23 @@
       segElapsed = 0;
       if (segIdx >= activeWorkout.segments.length) {
         stopTimer();
-        beepDone();
+        if (data.audioMode === 'beeps') {
+          beepDone();
+        } else {
+          playVoice('workout_done');
+        }
         vibrate([200, 100, 200, 100, 400]);
         showComplete();
         persistWorkoutState('complete');
         return;
       }
       transitionCountdown = TRANSITION_SECS;
-      beep(660, 200);
+      if (data.audioMode === 'beeps') {
+        beep(660, 200);
+      } else {
+        const nextSeg = activeWorkout.segments[segIdx];
+        playVoice(getVoiceKeyForReady(nextSeg, activeWorkout.week));
+      }
     }
 
     renderWorkoutState();

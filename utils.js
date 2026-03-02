@@ -149,6 +149,7 @@
     if (d.activeWorkoutState === undefined) d.activeWorkoutState = null;
     if (d.gpsPermissionAsked === undefined) d.gpsPermissionAsked = false;
     if (d.hasDummyHistory === undefined) d.hasDummyHistory = false;
+    if (!d.audioMode) d.audioMode = 'beeps';
     return d;
   };
 
