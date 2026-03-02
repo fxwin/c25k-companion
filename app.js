@@ -224,16 +224,49 @@
     });
   }
 
-  // ─── Build active timeline list ────────────────────────────
+  // ─── Build active timeline list (condensed: done / current / next / remaining) ─
   function buildActiveTimeline(container, segments, activeIdx) {
     container.innerHTML = '';
-    segments.forEach((s, i) => {
+
+    function segLabel(s) {
+      return s.type === 'warmup' ? 'Warmup Walk' : s.type === 'jog' ? 'Jog' : 'Walk';
+    }
+
+    // 1) Completed sections
+    if (activeIdx > 0) {
+      const doneTime = segments.slice(0, activeIdx).reduce((a, s) => a + s.duration, 0);
       const el = document.createElement('div');
-      el.className = 'tl-item' + (i === activeIdx ? ' active' : '') + (i < activeIdx ? ' done' : '');
-      const label = s.type === 'warmup' ? 'Warmup Walk' : s.type === 'jog' ? 'Jog' : 'Walk';
-      el.innerHTML = `<span class="tl-dot"></span><span>${label}</span><span class="tl-dur">${fmtDuration(s.duration)}</span>`;
+      el.className = 'tl-item done';
+      el.innerHTML = `<span class="tl-dot"></span><span>${activeIdx} section${activeIdx > 1 ? 's' : ''} completed</span><span class="tl-dur">${fmtDuration(doneTime)}</span>`;
       container.appendChild(el);
-    });
+    }
+
+    // 2) Current section
+    const cur = segments[activeIdx];
+    const curEl = document.createElement('div');
+    curEl.className = 'tl-item active';
+    curEl.innerHTML = `<span class="tl-dot"></span><span>${segLabel(cur)}</span><span class="tl-dur">${fmtDuration(cur.duration)}</span>`;
+    container.appendChild(curEl);
+
+    // 3) Next section
+    if (activeIdx + 1 < segments.length) {
+      const nxt = segments[activeIdx + 1];
+      const nxtEl = document.createElement('div');
+      nxtEl.className = 'tl-item';
+      nxtEl.innerHTML = `<span class="tl-dot"></span><span>Up next: ${segLabel(nxt)}</span><span class="tl-dur">${fmtDuration(nxt.duration)}</span>`;
+      container.appendChild(nxtEl);
+    }
+
+    // 4) Remaining sections after next
+    const remainStart = activeIdx + 2;
+    if (remainStart < segments.length) {
+      const remainCount = segments.length - remainStart;
+      const remainTime = segments.slice(remainStart).reduce((a, s) => a + s.duration, 0);
+      const remEl = document.createElement('div');
+      remEl.className = 'tl-item remaining';
+      remEl.innerHTML = `<span class="tl-dot"></span><span>${remainCount} more section${remainCount > 1 ? 's' : ''}</span><span class="tl-dur">${fmtDuration(remainTime)}</span>`;
+      container.appendChild(remEl);
+    }
   }
 
   // ─── APP STATE ─────────────────────────────────────────────
@@ -288,7 +321,6 @@
 
     const w = PLAN[idx];
     $('#workout-title').textContent = workoutLabel(w);
-    $('#workout-desc').textContent = workoutDescription(w);
     buildTimelineBar($('#workout-preview-timeline'), w.segments);
     $('#workout-total-time').textContent = `Total: ${fmtDuration(totalDuration(w.segments))}`;
   }
