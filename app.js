@@ -135,6 +135,14 @@
     return segments.reduce((a, s) => a + s.duration, 0);
   }
 
+  function hasOverride() {
+    return data.overrideWorkoutIdx !== null && data.overrideWorkoutIdx !== undefined;
+  }
+
+  function getRecommendedIndex() {
+    return hasOverride() ? data.overrideWorkoutIdx : data.currentWorkout;
+  }
+
   function workoutLabel(w) { return `Week ${w.week} · Day ${w.day}`; }
 
   function workoutDescription(w) {
@@ -182,6 +190,8 @@
     if (!d.currentWorkout) d.currentWorkout = 0; // index in PLAN
     if (!d.history) d.history = [];
     if (d.raceDate === undefined) d.raceDate = null; // ISO date string or null
+    if (d.overrideWorkoutIdx === undefined) d.overrideWorkoutIdx = null; // manual override
+    if (d.programOverviewOpen === undefined) d.programOverviewOpen = false;
     return d;
   }
 
@@ -313,17 +323,25 @@
         const woIdx = PLAN.indexOf(w);
         const done = woIdx < currentIdx;
         const current = woIdx === currentIdx;
+        const selected = hasOverride() && data.overrideWorkoutIdx === woIdx;
 
         const wrapper = document.createElement('div');
         wrapper.className = 'wo-list-entry';
 
         const el = document.createElement('div');
-        el.className = 'wo-list-item' + (done ? ' wo-done' : '') + (current ? ' wo-current' : '');
+        el.className = 'wo-list-item' + (done ? ' wo-done' : '') + (current ? ' wo-current' : '') + (selected ? ' wo-selected' : '');
         el.style.cursor = 'pointer';
 
         const checkContent = done ? '\u2713' : '';
         const dur = fmtDuration(totalDuration(w.segments));
-        el.innerHTML = `<span class="wo-check">${checkContent}</span><span>Day ${w.day}</span><span class="wo-dur">${dur}</span>`;
+        el.innerHTML = `
+          <span class="wo-check">${checkContent}</span>
+          <span>Day ${w.day}</span>
+          <span class="wo-actions">
+            <button class="btn btn-link btn-muted wo-set-next-inline" data-idx="${woIdx}">Set next</button>
+            <span class="wo-dur">${dur}</span>
+          </span>
+        `;
         wrapper.appendChild(el);
 
         // Expandable workout preview
@@ -340,6 +358,18 @@
           <div class="workout-total-time">Total: ${dur}</div>
         `;
         wrapper.appendChild(preview);
+
+        const setBtn = el.querySelector('.wo-set-next-inline');
+        setBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (woIdx === data.currentWorkout) {
+            data.overrideWorkoutIdx = null;
+          } else {
+            data.overrideWorkoutIdx = woIdx;
+          }
+          saveData(data);
+          showHome();
+        });
 
         el.addEventListener('click', () => {
           const isOpen = !preview.hidden;
@@ -418,15 +448,34 @@
     // Next workout day
     $('#next-workout-info').textContent = nextWorkoutText(data.workoutDays);
 
-    const idx = data.currentWorkout;
+    // Clean up stale overrides
+    if (hasOverride()) {
+      if (data.overrideWorkoutIdx === data.currentWorkout || data.overrideWorkoutIdx >= PLAN.length) {
+        data.overrideWorkoutIdx = null;
+        saveData(data);
+      }
+    }
+    const overrideActive = hasOverride();
+    const idx = getRecommendedIndex();
     if (idx >= PLAN.length) {
       // Program complete
       $('.recommended-card').hidden = true;
       $('#program-complete-msg').hidden = false;
+      $('#reset-recommend-btn').hidden = true;
       return;
     }
     $('.recommended-card').hidden = false;
     $('#program-complete-msg').hidden = true;
+
+    $('#recommended-label').textContent = overrideActive ? 'Selected Workout' : 'Recommended Workout';
+    if (overrideActive) {
+      const rec = PLAN[data.currentWorkout];
+      const recLabel = rec ? workoutLabel(rec) : 'Recommended Workout';
+      $('#reset-recommend-btn').textContent = `Reset to Recommended (${recLabel})`;
+      $('#reset-recommend-btn').hidden = false;
+    } else {
+      $('#reset-recommend-btn').hidden = true;
+    }
 
     const w = PLAN[idx];
     $('#workout-title').textContent = workoutLabel(w);
@@ -435,6 +484,8 @@
 
     // Build program overview
     buildProgramOverview();
+    const overviewEl = $('#program-overview');
+    if (overviewEl) overviewEl.open = !!data.programOverviewOpen;
   }
 
   // ─── WORKOUT SCREEN ───────────────────────────────────────
@@ -577,14 +628,20 @@
   }
 
   function saveCompleted() {
+    const woIdx = getRecommendedIndex();
     data.history.push({
-      workoutIdx: data.currentWorkout,
+      workoutIdx: woIdx,
       label: workoutLabel(activeWorkout),
       date: new Date().toISOString(),
       duration: totalElapsed,
       rating: selectedRating,
     });
-    data.currentWorkout++;
+    // Advance currentWorkout past this workout if it's at or beyond it
+    if (woIdx >= data.currentWorkout) {
+      data.currentWorkout = woIdx + 1;
+    }
+    // Always clear override after completing a workout
+    data.overrideWorkoutIdx = null;
     saveData(data);
     activeWorkout = null;
     showHome();
@@ -655,7 +712,7 @@
 
     // Home buttons
     $('#start-btn').addEventListener('click', () => {
-      const idx = data.currentWorkout;
+      const idx = getRecommendedIndex();
       if (idx < PLAN.length) startWorkout(PLAN[idx]);
     });
     $('#history-btn').addEventListener('click', showHistory);
@@ -694,8 +751,23 @@
     // History back
     $('#history-back-btn').addEventListener('click', showHome);
 
+    const overviewEl = $('#program-overview');
+    if (overviewEl) {
+      overviewEl.addEventListener('toggle', () => {
+        data.programOverviewOpen = overviewEl.open;
+        saveData(data);
+      });
+    }
+
     // Setup back (return without changing days)
     $('#setup-back-btn').addEventListener('click', () => {
+      showHome();
+    });
+
+    // Reset override to recommended workout
+    $('#reset-recommend-btn').addEventListener('click', () => {
+      data.overrideWorkoutIdx = null;
+      saveData(data);
       showHome();
     });
 

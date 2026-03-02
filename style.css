@@ -77,6 +77,7 @@ h2 { font-size: 1.25rem; font-weight: 600; }
 }
 .btn:active { transform: scale(0.97); }
 .btn:disabled { opacity: 0.4; pointer-events: none; }
+.btn[hidden] { display: none; }
 
 .btn-primary { background: var(--green-dark); color: var(--white); }
 .btn-primary:hover { background: var(--green-mid); }
@@ -337,6 +338,14 @@ h2 { font-size: 1.25rem; font-weight: 600; }
 }
 .wo-list-item.wo-done { color: var(--gray-500); }
 .wo-list-item.wo-current { font-weight: 600; color: var(--green-dark); background: var(--green-pale); }
+.wo-list-item.wo-selected {
+  border: 2px solid var(--blue); background: #E3F2FD;
+  color: var(--gray-900);
+}
+.wo-list-item.wo-selected {
+  border: 2px solid var(--blue); background: #E3F2FD;
+  color: var(--gray-900);
+}
 .wo-check {
   width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0;
   border: 2px solid var(--gray-400); display: flex; align-items: center; justify-content: center;
@@ -344,7 +353,18 @@ h2 { font-size: 1.25rem; font-weight: 600; }
 }
 .wo-done .wo-check { background: var(--green-dark); border-color: var(--green-dark); color: var(--white); }
 .wo-current .wo-check { border-color: var(--green-dark); }
-.wo-list-item .wo-dur { margin-left: auto; font-size: 0.7rem; color: var(--gray-500); font-variant-numeric: tabular-nums; }
+.wo-actions {
+  margin-left: auto; display: inline-flex; align-items: center; gap: 0.35rem;
+  white-space: nowrap;
+}
+.wo-list-item .wo-dur {
+  font-size: 0.7rem; color: var(--gray-500); font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.wo-set-next-inline {
+  font-size: 0.7rem; padding: 0.2rem 0.35rem;
+  white-space: nowrap; margin-left: 0.35rem;
+}
 .wo-list-item.wo-expanded { background: var(--gray-100); border-radius: 8px 8px 0 0; }
 
 .wo-preview {
@@ -355,6 +375,7 @@ h2 { font-size: 1.25rem; font-weight: 600; }
 .wo-legend { margin-bottom: 0.25rem; }
 .wo-preview .timeline-preview { height: 18px; margin-bottom: 0.25rem; }
 .wo-preview .workout-total-time { font-size: 0.7rem; margin-bottom: 0; }
+.wo-set-next { margin-top: 0.35rem; }
 
 /* ===== UTIL ===== */
 @media (min-width: 500px) {
