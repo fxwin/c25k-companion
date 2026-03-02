@@ -44,6 +44,13 @@ body {
   border-top: 1px solid var(--gray-200);
   z-index: 60;
 }
+.footer-link {
+  font-size: 0.75rem; color: var(--gray-600); font-weight: 600;
+  text-decoration: none;
+}
+.footer-link:hover { text-decoration: underline; }
+.footer-icon { display: inline-flex; align-items: center; }
+.footer-icon img { width: 16px; height: 16px; display: block; }
 .dev-label { font-size: 0.75rem; color: var(--gray-600); font-weight: 600; }
 .switch { position: relative; width: 40px; height: 22px; }
 .switch input { opacity: 0; width: 0; height: 0; }

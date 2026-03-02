@@ -967,6 +967,7 @@
             { lat: 37.7768, lng: -122.4172, ts: 6, type: 'jog' },
             { lat: 37.7773, lng: -122.4164, ts: 8, type: 'walk' },
             { lat: 37.7778, lng: -122.4156, ts: 10, type: 'walk' },
+
           ]
         },
         {
@@ -1039,6 +1040,24 @@
             { lat: 37.7889, lng: -122.3994, ts: 6, type: 'jog' },
             { lat: 37.7894, lng: -122.3986, ts: 8, type: 'walk' },
             { lat: 37.7900, lng: -122.3978, ts: 10, type: 'walk' },
+          ]
+        },
+        {
+          label: 'Sample Workout H',
+          baseTs: now - 8 * 86400000,
+          track: [
+            { lat: 37.7760, lng: -122.4310, ts: 0, type: 'warmup' },
+            { lat: 37.7766, lng: -122.4302, ts: 2, type: 'warmup' },
+            { lat: 37.7772, lng: -122.4294, ts: 4, type: 'jog' },
+            { lat: 37.7778, lng: -122.4286, ts: 6, type: 'walk' },
+            { lat: 37.7784, lng: -122.4278, ts: 8, type: 'jog' },
+            { lat: 37.7790, lng: -122.4270, ts: 10, type: 'walk' },
+            { lat: 37.7796, lng: -122.4262, ts: 12, type: 'jog' },
+            { lat: 37.7802, lng: -122.4254, ts: 14, type: 'walk' },
+            { lat: 37.7808, lng: -122.4246, ts: 16, type: 'jog' },
+            { lat: 37.7814, lng: -122.4238, ts: 18, type: 'walk' },
+            { lat: 37.7820, lng: -122.4230, ts: 20, type: 'jog' },
+            { lat: 37.7826, lng: -122.4222, ts: 22, type: 'walk' }
           ]
         }
       ];
