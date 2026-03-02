@@ -319,7 +319,7 @@
     totalElapsed = 0;
     isRunning = false;
     transitionCountdown = 0;
-    preStartCountdown = 0;
+    preStartCountdown = START_BUFFER_SECS;
     track = [];
 
     showScreen('#workout-screen');
@@ -1063,6 +1063,9 @@
     if (!getDevMode()) return;
     data.workoutDays = [2, 4, 6];
     data.raceDate = '2026-12-25';
+    data.audioMode = 'male';
+    data.audioModeSet = true;
+    data.audioMuted = false;
     saveData(data);
   }
 
