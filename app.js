@@ -27,6 +27,7 @@
   const TRANSITION_SECS = 5;
   const START_BUFFER_SECS = 5;
   let preStartCountdown = 0;
+  let preStartAnnounced = false;
   let selectedDays = new Set();
   let suppressTransitionAlert = false;
   let watchId = null;
@@ -45,6 +46,7 @@
       totalElapsed,
       transitionCountdown,
       preStartCountdown,
+      preStartAnnounced,
       isRunning,
       lastTs: Date.now(),
     };
@@ -176,6 +178,7 @@
     totalElapsed = state.totalElapsed || 0;
     transitionCountdown = state.transitionCountdown || 0;
     preStartCountdown = state.preStartCountdown || 0;
+    preStartAnnounced = !!state.preStartAnnounced;
     track = state.track || [];
     isRunning = !!state.isRunning;
 
@@ -320,6 +323,7 @@
     isRunning = false;
     transitionCountdown = 0;
     preStartCountdown = START_BUFFER_SECS;
+    preStartAnnounced = false;
     track = [];
 
     showScreen('#workout-screen');
@@ -477,9 +481,12 @@
     const ctx = ns.getAudioCtx();
     if (ctx.state === 'suspended') ctx.resume();
     isRunning = true;
-    if (totalElapsed === 0 && segIdx === 0 && segElapsed === 0 && transitionCountdown === 0 && preStartCountdown === 0) {
-      preStartCountdown = START_BUFFER_SECS;
-      playVoice('start_warmup');
+    if (totalElapsed === 0 && segIdx === 0 && segElapsed === 0 && transitionCountdown === 0) {
+      if (preStartCountdown === 0) preStartCountdown = START_BUFFER_SECS;
+      if (!preStartAnnounced) {
+        playVoice('start_warmup');
+        preStartAnnounced = true;
+      }
     }
     timerInterval = setInterval(tick, 1000);
     updateControls();
@@ -503,6 +510,7 @@
     totalElapsed = 0;
     transitionCountdown = 0;
     preStartCountdown = 0;
+    preStartAnnounced = false;
     track = [];
     renderWorkoutState();
     updateControls();

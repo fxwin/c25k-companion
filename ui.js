@@ -67,7 +67,7 @@
       const remainTime = segments.slice(remainStart).reduce((a, s) => a + s.duration, 0);
       const remEl = document.createElement('div');
       remEl.className = 'tl-item remaining';
-      remEl.innerHTML = `<span class="tl-dot"></span><span>${remainCount} more section${remainCount > 1 ? 's' : ''}</span><span class="tl-dur">${formatDurationShort(remainTime)}</span>`;
+      remEl.innerHTML = `<span class="tl-dot"></span><span>${remainCount} more segment${remainCount > 1 ? 's' : ''}</span><span class="tl-dur">${formatDurationShort(remainTime)}</span>`;
       container.appendChild(remEl);
     }
   };
