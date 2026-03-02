@@ -14,7 +14,7 @@
   <section id="setup-screen" class="screen" hidden>
     <div class="container">
       <button id="setup-back-btn" class="btn btn-icon" hidden>← Back</button>
-      <h1>🏃 Couch to 5K</h1>
+      <h1>Couch to 5K</h1>
       <p class="subtitle">Welcome! Pick your 3 workout days to get started.</p>
       <div id="day-picker" class="day-picker">
         <button class="day-btn" data-day="1">Mon</button>
@@ -26,6 +26,12 @@
         <button class="day-btn" data-day="0">Sun</button>
       </div>
       <p id="day-hint" class="hint">Select exactly 3 days</p>
+
+      <div class="race-date-field">
+        <label for="race-date-input">Race / event date (optional)</label>
+        <input type="date" id="race-date-input">
+      </div>
+
       <button id="setup-done-btn" class="btn btn-primary" disabled>Let's Go!</button>
     </div>
   </section>
@@ -34,7 +40,7 @@
   <section id="home-screen" class="screen" hidden>
     <div class="container">
       <header class="home-header">
-        <h1>🏃 C25K</h1>
+        <h1>C25K</h1>
         <div id="race-countdown" class="race-countdown"></div>
       </header>
 

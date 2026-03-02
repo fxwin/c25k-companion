@@ -181,15 +181,17 @@
     if (!d.workoutDays) d.workoutDays = null;   // [1,3,5] etc
     if (!d.currentWorkout) d.currentWorkout = 0; // index in PLAN
     if (!d.history) d.history = [];
+    if (d.raceDate === undefined) d.raceDate = null; // ISO date string or null
     return d;
   }
 
   // ─── Race countdown ────────────────────────────────────────
-  const RACE_DATE = new Date('2026-05-10T00:00:00');
   function raceCountdownText() {
+    if (!data.raceDate) return null;
+    const raceDate = new Date(data.raceDate + 'T00:00:00');
     const now = new Date();
-    const diff = RACE_DATE - now;
-    if (diff <= 0) return 'Race day! 🏁';
+    const diff = raceDate - now;
+    if (diff <= 0) return 'Race day!';
     const days = Math.ceil(diff / 86400000);
     return `${days} day${days === 1 ? '' : 's'} to race`;
   }
@@ -389,6 +391,9 @@
     });
     $('#setup-done-btn').addEventListener('click', () => {
       data.workoutDays = [...selected];
+      // Save optional race date
+      const raceDateVal = $('#race-date-input').value;
+      data.raceDate = raceDateVal || null;
       saveData(data);
       showHome();
     });
@@ -400,7 +405,15 @@
     showScreen('#home-screen');
 
     // Race countdown
-    $('#race-countdown').textContent = raceCountdownText();
+    const countdownText = raceCountdownText();
+    const countdownEl = $('#race-countdown');
+    if (countdownText) {
+      countdownEl.textContent = countdownText;
+      countdownEl.hidden = false;
+    } else {
+      countdownEl.textContent = '';
+      countdownEl.hidden = true;
+    }
 
     // Next workout day
     $('#next-workout-info').textContent = nextWorkoutText(data.workoutDays);
@@ -651,6 +664,8 @@
       $$('.day-btn').forEach(b => b.classList.remove('selected'));
       $('#setup-done-btn').disabled = true;
       $('#day-hint').textContent = 'Select exactly 3 days';
+      // Pre-fill race date if previously set
+      $('#race-date-input').value = data.raceDate || '';
       $('#setup-back-btn').hidden = false;
       showScreen('#setup-screen');
     });

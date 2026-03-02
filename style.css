@@ -50,6 +50,20 @@ h2 { font-size: 1.25rem; font-weight: 600; }
 .subtitle { color: var(--gray-600); margin: 0.5rem 0 1.5rem; }
 .hint { color: var(--gray-600); font-size: 0.875rem; margin-top: 0.25rem; }
 
+.race-date-field {
+  margin: 1rem 0;
+}
+.race-date-field label {
+  display: block; font-size: 0.85rem; font-weight: 600;
+  color: var(--gray-600); margin-bottom: 0.25rem;
+}
+.race-date-field input {
+  width: 100%; padding: 0.5rem 0.75rem;
+  border: 2px solid var(--gray-400); border-radius: var(--radius);
+  font-size: 0.9rem; color: var(--gray-800);
+  background: var(--white);
+}
+
 /* ===== BUTTONS ===== */
 .btn {
   display: inline-flex; align-items: center; justify-content: center;
