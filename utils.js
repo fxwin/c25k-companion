@@ -150,6 +150,7 @@
     if (d.gpsPermissionAsked === undefined) d.gpsPermissionAsked = false;
     if (d.hasDummyHistory === undefined) d.hasDummyHistory = false;
     if (!d.audioMode) d.audioMode = 'beeps';
+    if (d.audioMuted === undefined) d.audioMuted = false;
     return d;
   };
 

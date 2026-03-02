@@ -62,7 +62,7 @@
   }
 
   function playVoice(key) {
-    if (!key || data.audioMode === 'mute' || data.audioMode === 'beeps') return;
+    if (!key || data.audioMuted || data.audioMode === 'mute' || data.audioMode === 'beeps') return;
     const path = `audio/${data.audioMode}/${key}.mp3`;
     let audio = audioCache[path];
     if (!audio) {
@@ -317,6 +317,7 @@
     updateControls();
     persistWorkoutState('in-progress');
     playVoice('start_warmup');
+    syncWorkoutAudioControls();
   }
 
   function renderWorkoutState() {
@@ -362,7 +363,7 @@
         if (suppressTransitionAlert) {
           suppressTransitionAlert = false;
         } else {
-          if (data.audioMode === 'beeps') {
+          if (data.audioMode === 'beeps' && !data.audioMuted) {
             beepTransition();
           } else {
             playVoice('start_now');
@@ -384,7 +385,7 @@
       segElapsed = 0;
       if (segIdx >= activeWorkout.segments.length) {
         stopTimer();
-        if (data.audioMode === 'beeps') {
+        if (data.audioMode === 'beeps' && !data.audioMuted) {
           beepDone();
         } else {
           playVoice('workout_done');
@@ -395,13 +396,33 @@
         return;
       }
       transitionCountdown = TRANSITION_SECS;
-      if (data.audioMode === 'beeps') {
+      if (data.audioMode === 'beeps' && !data.audioMuted) {
         beep(660, 200);
       } else {
         const nextSeg = activeWorkout.segments[segIdx];
         playVoice(getVoiceKeyForReady(nextSeg, activeWorkout.week));
       }
     }
+
+  function playAudioSample(mode) {
+    if (data.audioMuted) return;
+    if (mode === 'beeps') {
+      beepDone();
+    } else if (mode === 'female' || mode === 'male') {
+      playVoice('sample_start');
+    }
+  }
+
+  function syncWorkoutAudioControls() {
+    const audioSelect = $('#workout-audio-mode');
+    const muteBtn = $('#audio-mute-btn');
+    if (audioSelect) audioSelect.value = data.audioMode || 'beeps';
+    if (muteBtn) {
+      muteBtn.classList.toggle('muted', !!data.audioMuted);
+      muteBtn.setAttribute('aria-pressed', data.audioMuted ? 'true' : 'false');
+      muteBtn.textContent = data.audioMuted ? '🔇' : '🔊';
+    }
+  }
 
     renderWorkoutState();
     if (isRunning) persistWorkoutState('in-progress');
@@ -1055,6 +1076,25 @@
       statsShowAll = !statsShowAll;
       renderStats();
     });
+    const workoutAudioSelect = $('#workout-audio-mode');
+    const workoutMuteBtn = $('#audio-mute-btn');
+    if (workoutAudioSelect) {
+      workoutAudioSelect.value = data.audioMode || 'beeps';
+      workoutAudioSelect.addEventListener('change', () => {
+        data.audioMode = workoutAudioSelect.value;
+        saveData(data);
+        syncWorkoutAudioControls();
+        playAudioSample(data.audioMode);
+      });
+    }
+    if (workoutMuteBtn) {
+      workoutMuteBtn.addEventListener('click', () => {
+        data.audioMuted = !data.audioMuted;
+        saveData(data);
+        syncWorkoutAudioControls();
+        if (!data.audioMuted) playAudioSample(data.audioMode);
+      });
+    }
     $('#settings-btn').addEventListener('click', () => {
       selectedDays = new Set(data.workoutDays || []);
       $$('.day-btn').forEach(b => {
