@@ -484,7 +484,7 @@
     if (totalElapsed === 0 && segIdx === 0 && segElapsed === 0 && transitionCountdown === 0) {
       if (preStartCountdown === 0) preStartCountdown = START_BUFFER_SECS;
       if (!preStartAnnounced) {
-        playVoice('start_warmup');
+        playVoice('get_ready_warmup_300');
         preStartAnnounced = true;
       }
     }
