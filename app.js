@@ -22,6 +22,14 @@
   }
 
   const PLAN = [
+    // Test workout (remove before going live)
+    { week: 0, day: 1, segments: [
+      { type: 'warmup', duration: 5 },
+      { type: 'jog', duration: 3 }, { type: 'walk', duration: 3 },
+      { type: 'jog', duration: 3 }, { type: 'walk', duration: 3 },
+      { type: 'jog', duration: 3 }, { type: 'walk', duration: 3 },
+      { type: 'jog', duration: 3 }, { type: 'walk', duration: 3 },
+    ]},
     // Week 1
     { week: 1, day: 1, segments: [warmup(), ...alternate(60, 90, 20)] },
     { week: 1, day: 2, segments: [warmup(), ...alternate(60, 90, 20)] },
@@ -269,6 +277,92 @@
     }
   }
 
+  // ─── Build program overview (expandable week list) ─────────
+  function buildProgramOverview() {
+    const container = $('#program-weeks');
+    container.innerHTML = '';
+    const currentIdx = data.currentWorkout;
+
+    for (let week = 1; week <= 9; week++) {
+      const weekWorkouts = PLAN.filter(w => w.week === week);
+      const firstIdx = PLAN.indexOf(weekWorkouts[0]);
+      const lastIdx = PLAN.indexOf(weekWorkouts[weekWorkouts.length - 1]);
+
+      const details = document.createElement('details');
+      details.className = 'week-group';
+
+      // Auto-open the current week
+      const isCurrent = currentIdx >= firstIdx && currentIdx <= lastIdx;
+      const isDone = currentIdx > lastIdx;
+      if (isCurrent) details.open = true;
+
+      let badge = '';
+      if (isDone) badge = '<span class="week-badge badge-done">Done</span>';
+      else if (isCurrent) badge = '<span class="week-badge badge-current">Current</span>';
+
+      const summary = document.createElement('summary');
+      summary.innerHTML = `Week ${week}${badge}`;
+      details.appendChild(summary);
+
+      const list = document.createElement('div');
+      list.className = 'wo-list';
+
+      weekWorkouts.forEach(w => {
+        const woIdx = PLAN.indexOf(w);
+        const done = woIdx < currentIdx;
+        const current = woIdx === currentIdx;
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'wo-list-entry';
+
+        const el = document.createElement('div');
+        el.className = 'wo-list-item' + (done ? ' wo-done' : '') + (current ? ' wo-current' : '');
+        el.style.cursor = 'pointer';
+
+        const checkContent = done ? '\u2713' : '';
+        const dur = fmtDuration(totalDuration(w.segments));
+        el.innerHTML = `<span class="wo-check">${checkContent}</span><span>Day ${w.day}</span><span class="wo-dur">${dur}</span>`;
+        wrapper.appendChild(el);
+
+        // Expandable workout preview
+        const preview = document.createElement('div');
+        preview.className = 'wo-preview';
+        preview.hidden = true;
+        preview.innerHTML = `
+          <div class="timeline-legend wo-legend">
+            <span class="legend-item"><span class="legend-swatch seg-warmup"></span>Warmup</span>
+            <span class="legend-item"><span class="legend-swatch seg-jog"></span>Jog</span>
+            <span class="legend-item"><span class="legend-swatch seg-walk"></span>Walk</span>
+          </div>
+          <div class="timeline-preview wo-timeline"></div>
+          <div class="workout-total-time">Total: ${dur}</div>
+        `;
+        wrapper.appendChild(preview);
+
+        el.addEventListener('click', () => {
+          const isOpen = !preview.hidden;
+          // Close all other previews in this week
+          list.querySelectorAll('.wo-preview').forEach(p => p.hidden = true);
+          list.querySelectorAll('.wo-list-item').forEach(i => i.classList.remove('wo-expanded'));
+          if (!isOpen) {
+            preview.hidden = false;
+            el.classList.add('wo-expanded');
+            // Build timeline bar on first open
+            const tlContainer = preview.querySelector('.wo-timeline');
+            if (!tlContainer.hasChildNodes()) {
+              buildTimelineBar(tlContainer, w.segments);
+            }
+          }
+        });
+
+        list.appendChild(wrapper);
+      });
+
+      details.appendChild(list);
+      container.appendChild(details);
+    }
+  }
+
   // ─── APP STATE ─────────────────────────────────────────────
   let data = getData();
   let activeWorkout = null;  // PLAN entry
@@ -278,6 +372,8 @@
   let totalElapsed = 0; // seconds elapsed overall
   let isRunning = false;
   let selectedRating = 0;
+  let transitionCountdown = 0; // 5-second buffer between segments
+  const TRANSITION_SECS = 5;
 
   // ─── SETUP SCREEN ─────────────────────────────────────────
   function initSetup() {
@@ -323,6 +419,9 @@
     $('#workout-title').textContent = workoutLabel(w);
     buildTimelineBar($('#workout-preview-timeline'), w.segments);
     $('#workout-total-time').textContent = `Total: ${fmtDuration(totalDuration(w.segments))}`;
+
+    // Build program overview
+    buildProgramOverview();
   }
 
   // ─── WORKOUT SCREEN ───────────────────────────────────────
@@ -340,6 +439,26 @@
   }
 
   function renderWorkoutState() {
+    // If in transition countdown, show "Get Ready" state
+    if (transitionCountdown > 0) {
+      const nextSeg = activeWorkout.segments[segIdx];
+      const typeEl = $('#segment-type');
+      const nextLabel = nextSeg.type === 'warmup' ? 'Warmup Walk' : nextSeg.type === 'jog' ? 'Jog' : 'Walk';
+      typeEl.textContent = `Get Ready: ${nextLabel}`;
+      typeEl.className = 'segment-type type-transition';
+      $('#segment-timer').textContent = fmtTime(transitionCountdown);
+      $('#segment-remaining').textContent = `Segment ${segIdx + 1} of ${activeWorkout.segments.length}`;
+
+      // Progress (don't advance during transition)
+      const total = totalDuration(activeWorkout.segments);
+      const pct = Math.min(100, (totalElapsed / total) * 100);
+      $('#total-progress-bar').style.width = pct + '%';
+      $('#total-time-display').textContent = `${fmtTime(totalElapsed)} / ${fmtTime(total)}`;
+
+      buildActiveTimeline($('#active-timeline'), activeWorkout.segments, segIdx);
+      return;
+    }
+
     const seg = activeWorkout.segments[segIdx];
     const remaining = seg.duration - segElapsed;
 
@@ -361,6 +480,18 @@
   }
 
   function tick() {
+    // Handle transition countdown first
+    if (transitionCountdown > 0) {
+      transitionCountdown--;
+      if (transitionCountdown === 0) {
+        // Transition done, start the segment
+        beepTransition();
+        vibrate([200, 100, 200]);
+      }
+      renderWorkoutState();
+      return;
+    }
+
     segElapsed++;
     totalElapsed++;
 
@@ -377,9 +508,9 @@
         showComplete();
         return;
       }
-      // Alert user of transition
-      beepTransition();
-      vibrate([200, 100, 200]);
+      // Start transition countdown
+      transitionCountdown = TRANSITION_SECS;
+      beep(660, 200);
     }
 
     renderWorkoutState();
@@ -407,6 +538,7 @@
     segIdx = 0;
     segElapsed = 0;
     totalElapsed = 0;
+    transitionCountdown = 0;
     renderWorkoutState();
     updateControls();
   }
@@ -414,6 +546,11 @@
   function updateControls() {
     const btn = $('#ctrl-start-stop');
     btn.textContent = isRunning ? 'Pause' : (totalElapsed > 0 ? 'Resume' : 'Start');
+    if (isRunning) {
+      btn.classList.add('btn-pause');
+    } else {
+      btn.classList.remove('btn-pause');
+    }
   }
 
   // ─── COMPLETE SCREEN ──────────────────────────────────────
@@ -440,6 +577,18 @@
     showHome();
   }
 
+  // ─── Recalculate currentWorkout from history ──────────────
+  function recalcCurrentWorkout() {
+    if (data.history.length === 0) {
+      data.currentWorkout = 0;
+    } else {
+      // Take the latest entry's workoutIdx and go to the next one
+      const latest = data.history[data.history.length - 1];
+      data.currentWorkout = latest.workoutIdx + 1;
+    }
+    saveData(data);
+  }
+
   // ─── HISTORY SCREEN ───────────────────────────────────────
   function showHistory() {
     showScreen('#history-screen');
@@ -447,12 +596,15 @@
     list.innerHTML = '';
     if (data.history.length === 0) {
       $('#history-empty').hidden = false;
+      $('#history-clear-btn').hidden = true;
       return;
     }
     $('#history-empty').hidden = true;
+    $('#history-clear-btn').hidden = false;
     const ratingEmojis = ['', '😫', '😕', '😐', '🙂', '😄'];
     // Show newest first
-    [...data.history].reverse().forEach(h => {
+    [...data.history].reverse().forEach((h, ri) => {
+      const realIdx = data.history.length - 1 - ri;
       const d = new Date(h.date);
       const dateStr = d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
       const timeStr = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
@@ -465,8 +617,21 @@
           <div class="hi-duration">${fmtDuration(h.duration)}</div>
         </div>
         <div class="hi-rating">${ratingEmojis[h.rating] || ''}</div>
+        <button class="hi-delete" data-idx="${realIdx}" title="Delete">✕</button>
       `;
       list.appendChild(el);
+    });
+
+    // Wire up individual delete buttons
+    list.querySelectorAll('.hi-delete').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = Number(btn.dataset.idx);
+        if (confirm('Delete this workout entry?')) {
+          data.history.splice(idx, 1);
+          recalcCurrentWorkout();
+          showHistory();
+        }
+      });
     });
   }
 
@@ -482,12 +647,11 @@
     });
     $('#history-btn').addEventListener('click', showHistory);
     $('#settings-btn').addEventListener('click', () => {
-      data.workoutDays = null;
-      saveData(data);
-      // Reset day picker UI
+      // Reset day picker UI but keep data until confirmed
       $$('.day-btn').forEach(b => b.classList.remove('selected'));
       $('#setup-done-btn').disabled = true;
       $('#day-hint').textContent = 'Select exactly 3 days';
+      $('#setup-back-btn').hidden = false;
       showScreen('#setup-screen');
     });
 
@@ -514,6 +678,20 @@
 
     // History back
     $('#history-back-btn').addEventListener('click', showHome);
+
+    // Setup back (return without changing days)
+    $('#setup-back-btn').addEventListener('click', () => {
+      showHome();
+    });
+
+    // Clear all history
+    $('#history-clear-btn').addEventListener('click', () => {
+      if (confirm('Delete all workout history? This will reset your progress.')) {
+        data.history = [];
+        recalcCurrentWorkout();
+        showHistory();
+      }
+    });
 
     // Initial screen
     showHome();

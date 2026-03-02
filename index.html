@@ -13,6 +13,7 @@
   <!-- SETUP SCREEN -->
   <section id="setup-screen" class="screen" hidden>
     <div class="container">
+      <button id="setup-back-btn" class="btn btn-icon" hidden>← Back</button>
       <h1>🏃 Couch to 5K</h1>
       <p class="subtitle">Welcome! Pick your 3 workout days to get started.</p>
       <div id="day-picker" class="day-picker">
@@ -56,6 +57,11 @@
         <h2>🎉 Program Complete!</h2>
         <p>You've completed all 27 workouts. You're ready for your 5K!</p>
       </div>
+
+      <details id="program-overview" class="program-overview">
+        <summary class="program-overview-toggle">Full Program Overview</summary>
+        <div id="program-weeks" class="program-weeks"></div>
+      </details>
 
       <button id="history-btn" class="btn btn-secondary">View History</button>
       <button id="settings-btn" class="btn btn-link">Change Workout Days</button>
@@ -123,6 +129,7 @@
 
       <div id="history-list" class="history-list"></div>
       <p id="history-empty" class="hint" hidden>No workouts logged yet.</p>
+      <button id="history-clear-btn" class="btn btn-link btn-muted" hidden>Clear History</button>
     </div>
   </section>
 

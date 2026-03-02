@@ -16,6 +16,7 @@
   --gray-800: #424242;
   --gray-900: #212121;
   --red: #E53935;
+  --red-dark: #B71C1C;
   --orange: #FB8C00;
   --blue: #1E88E5;
   --radius: 12px;
@@ -65,6 +66,8 @@ h2 { font-size: 1.25rem; font-weight: 600; }
 
 .btn-primary { background: var(--green-dark); color: var(--white); }
 .btn-primary:hover { background: var(--green-mid); }
+.btn-primary.btn-pause { background: var(--red-dark); }
+.btn-primary.btn-pause:hover { background: var(--red); }
 
 .btn-secondary { background: var(--gray-200); color: var(--gray-800); }
 .btn-secondary:hover { background: var(--gray-400); }
@@ -83,11 +86,11 @@ h2 { font-size: 1.25rem; font-weight: 600; }
 
 /* ===== SETUP: DAY PICKER ===== */
 .day-picker {
-  display: flex; gap: 0.5rem; flex-wrap: wrap;
-  justify-content: center; margin-bottom: 1rem;
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.35rem;
+  justify-items: center; margin-bottom: 1rem;
 }
 .day-btn {
-  width: 3.5rem; height: 3.5rem; border-radius: 50%;
+  width: 2.75rem; height: 2.75rem; border-radius: 50%;
   border: 2px solid var(--gray-400); background: var(--white);
   font-size: 0.8rem; font-weight: 600; color: var(--gray-800);
   cursor: pointer; transition: all 0.15s;
@@ -165,6 +168,7 @@ h2 { font-size: 1.25rem; font-weight: 600; }
 .segment-type.type-warmup { color: var(--orange); }
 .segment-type.type-jog { color: var(--green-dark); }
 .segment-type.type-walk { color: var(--blue); }
+.segment-type.type-transition { color: var(--gray-600); }
 
 .segment-timer {
   font-size: 4rem; font-weight: 700; font-variant-numeric: tabular-nums;
@@ -259,6 +263,84 @@ h2 { font-size: 1.25rem; font-weight: 600; }
 .hi-date { font-size: 0.75rem; color: var(--gray-600); }
 .hi-duration { font-size: 0.75rem; color: var(--gray-600); }
 .hi-rating { font-size: 1.5rem; margin-left: 0.75rem; }
+.hi-delete {
+  background: none; border: none; cursor: pointer;
+  font-size: 1.1rem; color: var(--gray-400); padding: 0.25rem;
+  margin-left: 0.5rem; line-height: 1;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.15s;
+}
+.hi-delete:hover { color: var(--red); }
+.btn-danger { color: var(--red); }
+.btn-muted { color: var(--gray-500); }
+
+/* ===== PROGRAM OVERVIEW ===== */
+.program-overview {
+  margin-bottom: 1rem;
+}
+.program-overview-toggle {
+  font-size: 0.9rem; font-weight: 600; color: var(--green-dark);
+  cursor: pointer; padding: 0.75rem 0;
+  list-style: none; text-align: center;
+  -webkit-tap-highlight-color: transparent;
+}
+.program-overview-toggle::-webkit-details-marker { display: none; }
+.program-overview-toggle::before {
+  content: '\25B6 '; font-size: 0.7rem; margin-right: 0.25rem;
+}
+.program-overview[open] > .program-overview-toggle::before {
+  content: '\25BC ';
+}
+.program-weeks { padding-top: 0.25rem; }
+
+.week-group { margin-bottom: 0.5rem; }
+.week-group summary {
+  font-size: 0.85rem; font-weight: 600; color: var(--gray-800);
+  cursor: pointer; padding: 0.5rem 0.5rem;
+  background: var(--gray-100); border-radius: 8px;
+  list-style: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.week-group summary::-webkit-details-marker { display: none; }
+.week-group summary::before {
+  content: '\25B6 '; font-size: 0.6rem; margin-right: 0.25rem;
+}
+.week-group[open] > summary::before {
+  content: '\25BC ';
+}
+.week-group summary .week-badge {
+  font-size: 0.7rem; font-weight: 600; padding: 0.1rem 0.4rem;
+  border-radius: 999px; margin-left: 0.5rem; vertical-align: middle;
+}
+.week-badge.badge-done { background: var(--green-pale); color: var(--green-dark); }
+.week-badge.badge-current { background: #FFF3E0; color: var(--orange); }
+
+.wo-list { padding: 0.25rem 0 0.25rem 0.5rem; }
+.wo-list-item {
+  display: flex; align-items: center; gap: 0.5rem;
+  padding: 0.4rem 0.5rem; border-radius: 8px;
+  font-size: 0.8rem; color: var(--gray-800);
+}
+.wo-list-item.wo-done { color: var(--gray-500); }
+.wo-list-item.wo-current { font-weight: 600; color: var(--green-dark); background: var(--green-pale); }
+.wo-check {
+  width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0;
+  border: 2px solid var(--gray-400); display: flex; align-items: center; justify-content: center;
+  font-size: 0.6rem;
+}
+.wo-done .wo-check { background: var(--green-dark); border-color: var(--green-dark); color: var(--white); }
+.wo-current .wo-check { border-color: var(--green-dark); }
+.wo-list-item .wo-dur { margin-left: auto; font-size: 0.7rem; color: var(--gray-500); font-variant-numeric: tabular-nums; }
+.wo-list-item.wo-expanded { background: var(--gray-100); border-radius: 8px 8px 0 0; }
+
+.wo-preview {
+  padding: 0.25rem 0.5rem 0.5rem 2rem;
+  background: var(--gray-100); border-radius: 0 0 8px 8px;
+  margin-bottom: 0.25rem;
+}
+.wo-legend { margin-bottom: 0.25rem; }
+.wo-preview .timeline-preview { height: 18px; margin-bottom: 0.25rem; }
+.wo-preview .workout-total-time { font-size: 0.7rem; margin-bottom: 0; }
 
 /* ===== UTIL ===== */
 @media (min-width: 500px) {
