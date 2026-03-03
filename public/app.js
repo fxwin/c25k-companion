@@ -1216,6 +1216,9 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     init();
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
     setInterval(() => {
       if (isRunning && !wakeLock) requestWakeLock();
       if (!isRunning && wakeLock) releaseWakeLock();
