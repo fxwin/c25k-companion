@@ -3,6 +3,12 @@
 
 No login or download required, no ads, completely free, and all your data stays on your device.
 
+## Screenshots
+
+| | | | |
+|:---:|:---:|:---:|:---:|
+| ![Screenshot 1](screens/screenshot_1.jpg) | ![Screenshot 2](screens/screenshot_2.jpg) | ![Screenshot 3](screens/screenshot_3.jpg) | ![Screenshot 4](screens/screenshot_4.jpg) |
+
 ## Features
 - Preset workout following the plan linked above
 - Voice instructions during workouts (Or beeps if you don't like people, or nothing at all if you like looking at your screen while you run, I don't)
