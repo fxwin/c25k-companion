@@ -887,7 +887,9 @@
       map = L.map(mapCanvas);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
-        attribution: '&copy; OpenStreetMap'
+        attribution: '&copy; OpenStreetMap',
+        updateWhenIdle: false,
+        updateWhenZooming: false,
       }).addTo(map);
       historyMaps.set(mapWrap, map);
     } else {
