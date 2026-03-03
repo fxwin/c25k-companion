@@ -910,14 +910,25 @@
       }
       const color = seg.type === 'warmup' ? warmupColor : seg.type === 'jog' ? jogColor : walkColor;
       const poly = L.polyline(seg.points, { color, weight: 4, opacity: 0.9 }).addTo(layer);
+      // Place label offset to the side of the segment midpoint
       const midIdx = Math.floor((seg.points.length - 1) / 2);
       const mid = seg.points[midIdx];
+      // Compute perpendicular offset direction from segment bearing at midpoint
+      const before = seg.points[Math.max(0, midIdx - 1)];
+      const after = seg.points[Math.min(seg.points.length - 1, midIdx + 1)];
+      const dlat = after[0] - before[0];
+      const dlng = after[1] - before[1];
+      // Perpendicular: rotate 90° (swap and negate one)
+      const len = Math.sqrt(dlat * dlat + dlng * dlng) || 1;
+      const offsetScale = 0.0003; // ~30m offset in lat/lng
+      const offLat = mid[0] + (-dlng / len) * offsetScale;
+      const offLng = mid[1] + (dlat / len) * offsetScale;
       const label = `
         <div class="segment-label-line">${formatDistance(seg.distance)}</div>
         <div class="segment-label-line">${formatDurationShort(seg.time)}</div>
       `;
-      const icon = L.divIcon({ className: 'segment-label', html: label, iconSize: [76, 34] });
-      L.marker(mid, { icon }).addTo(layer);
+      const icon = L.divIcon({ className: 'segment-label', html: label, iconSize: [60, 28], iconAnchor: [30, 14] });
+      L.marker([offLat, offLng], { icon, interactive: false }).addTo(layer);
     });
     layer.addTo(map);
     map._c25kLayer = layer;
@@ -953,204 +964,18 @@
   }
 
   // ─── EVENT WIRING ─────────────────────────────────────────
-  function seedSampleHistory() {
+  async function seedSampleHistory() {
     if (!getDevMode()) return;
     if (!data.hasDummyHistory && data.history.length === 0) {
-      const now = Date.now();
-      const samples = [
-        {
-          label: 'Sample Workout A',
-          baseTs: now - 86400000,
-          track: [
-            { type: 'warmup', coords: [
-              { lat: 37.7749, lng: -122.4194, ts: 0 },
-              { lat: 37.7756, lng: -122.4187, ts: 2 },
-            ]},
-            { type: 'jog', coords: [
-              { lat: 37.7762, lng: -122.4180, ts: 4 },
-              { lat: 37.7768, lng: -122.4172, ts: 6 },
-            ]},
-            { type: 'walk', coords: [
-              { lat: 37.7773, lng: -122.4164, ts: 8 },
-              { lat: 37.7778, lng: -122.4156, ts: 10 },
-            ]},
-          ]
-        },
-        {
-          label: 'Sample Workout B',
-          baseTs: now - 2 * 86400000,
-          track: [
-            { type: 'warmup', coords: [
-              { lat: 37.7712, lng: -122.4231, ts: 0 },
-              { lat: 37.7719, lng: -122.4222, ts: 3 },
-            ]},
-            { type: 'jog', coords: [
-              { lat: 37.7725, lng: -122.4213, ts: 6 },
-              { lat: 37.7731, lng: -122.4204, ts: 9 },
-            ]},
-            { type: 'walk', coords: [
-              { lat: 37.7736, lng: -122.4196, ts: 12 },
-              { lat: 37.7741, lng: -122.4188, ts: 15 },
-            ]},
-          ]
-        },
-        {
-          label: 'Sample Workout C',
-          baseTs: now - 3 * 86400000,
-          track: [
-            { type: 'warmup', coords: [
-              { lat: 37.7791, lng: -122.4147, ts: 0 },
-              { lat: 37.7796, lng: -122.4139, ts: 2 },
-            ]},
-            { type: 'jog', coords: [
-              { lat: 37.7802, lng: -122.4130, ts: 4 },
-              { lat: 37.7807, lng: -122.4121, ts: 6 },
-            ]},
-            { type: 'walk', coords: [
-              { lat: 37.7812, lng: -122.4112, ts: 8 },
-              { lat: 37.7816, lng: -122.4104, ts: 10 },
-            ]},
-          ]
-        },
-        {
-          label: 'Sample Workout D',
-          baseTs: now - 4 * 86400000,
-          track: [
-            { type: 'warmup', coords: [
-              { lat: 37.7684, lng: -122.4262, ts: 0 },
-              { lat: 37.7690, lng: -122.4254, ts: 3 },
-            ]},
-            { type: 'jog', coords: [
-              { lat: 37.7696, lng: -122.4246, ts: 6 },
-              { lat: 37.7701, lng: -122.4238, ts: 9 },
-            ]},
-            { type: 'walk', coords: [
-              { lat: 37.7706, lng: -122.4230, ts: 12 },
-              { lat: 37.7711, lng: -122.4222, ts: 15 },
-            ]},
-          ]
-        },
-        {
-          label: 'Sample Workout E',
-          baseTs: now - 5 * 86400000,
-          track: [
-            { type: 'warmup', coords: [
-              { lat: 37.7820, lng: -122.4095, ts: 0 },
-              { lat: 37.7826, lng: -122.4087, ts: 2 },
-            ]},
-            { type: 'jog', coords: [
-              { lat: 37.7832, lng: -122.4079, ts: 4 },
-              { lat: 37.7837, lng: -122.4071, ts: 6 },
-            ]},
-            { type: 'walk', coords: [
-              { lat: 37.7842, lng: -122.4063, ts: 8 },
-              { lat: 37.7847, lng: -122.4055, ts: 10 },
-            ]},
-          ]
-        },
-        {
-          label: 'Sample Workout F',
-          baseTs: now - 6 * 86400000,
-          track: [
-            { type: 'warmup', coords: [
-              { lat: 37.7652, lng: -122.4310, ts: 0 },
-              { lat: 37.7658, lng: -122.4302, ts: 3 },
-            ]},
-            { type: 'jog', coords: [
-              { lat: 37.7663, lng: -122.4294, ts: 6 },
-              { lat: 37.7669, lng: -122.4286, ts: 9 },
-            ]},
-            { type: 'walk', coords: [
-              { lat: 37.7674, lng: -122.4278, ts: 12 },
-              { lat: 37.7680, lng: -122.4270, ts: 15 },
-            ]},
-          ]
-        },
-        {
-          label: 'Sample Workout G',
-          baseTs: now - 7 * 86400000,
-          track: [
-            { type: 'warmup', coords: [
-              { lat: 37.7871, lng: -122.4018, ts: 0 },
-              { lat: 37.7877, lng: -122.4010, ts: 2 },
-            ]},
-            { type: 'jog', coords: [
-              { lat: 37.7883, lng: -122.4002, ts: 4 },
-              { lat: 37.7889, lng: -122.3994, ts: 6 },
-            ]},
-            { type: 'walk', coords: [
-              { lat: 37.7894, lng: -122.3986, ts: 8 },
-              { lat: 37.7900, lng: -122.3978, ts: 10 },
-            ]},
-          ]
-        },
-        {
-          label: 'Sample Workout H',
-          baseTs: now - 8 * 86400000,
-          track: [
-            { type: 'warmup', coords: [
-              { lat: 37.7760, lng: -122.4310, ts: 0 },
-              { lat: 37.7764, lng: -122.4306, ts: 1 },
-              { lat: 37.7768, lng: -122.4302, ts: 2 },
-            ]},
-            { type: 'jog', coords: [
-              { lat: 37.7772, lng: -122.4298, ts: 3 },
-              { lat: 37.7776, lng: -122.4294, ts: 4 },
-              { lat: 37.7780, lng: -122.4290, ts: 5 },
-            ]},
-            { type: 'walk', coords: [
-              { lat: 37.7784, lng: -122.4286, ts: 6 },
-              { lat: 37.7788, lng: -122.4282, ts: 7 },
-              { lat: 37.7792, lng: -122.4278, ts: 8 },
-            ]},
-            { type: 'jog', coords: [
-              { lat: 37.7796, lng: -122.4274, ts: 9 },
-              { lat: 37.7800, lng: -122.4270, ts: 10 },
-              { lat: 37.7804, lng: -122.4266, ts: 11 },
-            ]},
-            { type: 'walk', coords: [
-              { lat: 37.7808, lng: -122.4262, ts: 12 },
-              { lat: 37.7812, lng: -122.4258, ts: 13 },
-              { lat: 37.7816, lng: -122.4254, ts: 14 },
-            ]},
-            { type: 'jog', coords: [
-              { lat: 37.7820, lng: -122.4250, ts: 15 },
-              { lat: 37.7824, lng: -122.4246, ts: 16 },
-              { lat: 37.7828, lng: -122.4242, ts: 17 },
-            ]},
-            { type: 'walk', coords: [
-              { lat: 37.7832, lng: -122.4238, ts: 18 },
-              { lat: 37.7836, lng: -122.4234, ts: 19 },
-              { lat: 37.7840, lng: -122.4230, ts: 20 },
-            ]},
-          ]
-        }
-      ];
-
-      const ratings = [3, 5, 4, 2, 4, 1, 5, 3];
-      samples.forEach((s, i) => {
-        const track = s.track.map(seg => ({
-          type: seg.type,
-          coords: seg.coords.map(c => ({
-            lat: c.lat,
-            lng: c.lng,
-            ts: s.baseTs + c.ts * 60000,
-          })),
-        }));
-        const stats = computeTrackStats(track);
-        data.history.push({
-          workoutIdx: i,
-          label: s.label,
-          date: new Date(s.baseTs).toISOString(),
-          duration: stats.totalTime,
-          rating: ratings[i % ratings.length],
-          track,
-          trackStats: stats,
-        });
-      });
-
-      data.hasDummyHistory = true;
-      saveData(data);
+      try {
+        const res = await fetch('sample_history.json');
+        if (!res.ok) return;
+        const samples = await res.json();
+        data.history = samples;
+        data.hasDummyHistory = true;
+        saveData(data);
+        showHome();
+      } catch (_) {}
     }
   }
 

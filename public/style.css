@@ -478,16 +478,18 @@ h2 { font-size: 1.25rem; font-weight: 600; }
   margin: 0.15rem 0;
 }
 .segment-label {
-  background: rgba(255,255,255,0.9);
+  background: rgba(255,255,255,0.85);
   border: 1px solid var(--gray-200);
   border-radius: 999px;
-  padding: 0.2rem 0.5rem;
-  min-width: 70px;
+  padding: 0.1rem 0.35rem;
+  min-width: 0;
   text-align: center;
-  font-size: 0.7rem; font-weight: 600;
+  font-size: 0.6rem; font-weight: 600;
   color: var(--gray-800);
   box-shadow: var(--shadow);
-  line-height: 1.1;
+  line-height: 1.05;
+  white-space: nowrap;
+  pointer-events: none;
 }
 .segment-label-line { display: block; text-align: center; }
 
