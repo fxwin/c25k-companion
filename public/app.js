@@ -18,6 +18,7 @@
   let activeWorkout = null;
   let activeWorkoutIdx = null;
   let timerInterval = null;
+  let tickWorker = null;
   let segIdx = 0;
   let segElapsed = 0;
   let totalElapsed = 0;
@@ -32,10 +33,11 @@
   let suppressTransitionAlert = false;
   let watchId = null;
   let track = [];
+  let forceNewTrackSegment = false;
   const historyMaps = new WeakMap();
   const statsCharts = {};
   const audioCache = {};
-  const VOICE_GAIN = 2.5;
+  const VOICE_GAIN = 3;
 
   function persistWorkoutState(status) {
     if (activeWorkoutIdx === null) return;
@@ -117,10 +119,11 @@
         };
         const type = currentSegmentType();
         const lastSeg = track.length > 0 ? track[track.length - 1] : null;
-        if (lastSeg && lastSeg.type === type) {
+        if (!forceNewTrackSegment && lastSeg && lastSeg.type === type) {
           lastSeg.coords.push(coord);
         } else {
           track.push({ type, coords: [coord] });
+          forceNewTrackSegment = false;
         }
         if (data.activeWorkoutState) data.activeWorkoutState.track = track;
         saveData(data);
@@ -513,7 +516,19 @@
         preStartAnnounced = true;
       }
     }
-    timerInterval = setInterval(tick, 1000);
+    // Prefer Web Worker timer (not throttled when backgrounded)
+    if (!tickWorker && typeof Worker !== 'undefined') {
+      try {
+        tickWorker = new Worker('tick-worker.js');
+        tickWorker.addEventListener('message', () => tick());
+      } catch (_) { tickWorker = null; }
+    }
+    if (tickWorker) {
+      tickWorker.postMessage('start');
+      timerInterval = true; // sentinel so startTimer guard works
+    } else {
+      timerInterval = setInterval(tick, 1000);
+    }
     updateControls();
     persistWorkoutState('in-progress');
     startTracking();
@@ -521,6 +536,9 @@
 
   function stopTimer() {
     isRunning = false;
+    if (tickWorker) {
+      tickWorker.postMessage('stop');
+    }
     clearInterval(timerInterval);
     timerInterval = null;
     updateControls();
@@ -1230,6 +1248,33 @@
   function releaseWakeLock() {
     if (wakeLock) { wakeLock.release(); wakeLock = null; }
   }
+
+  // ─── Catch up timer when page becomes visible again ──────
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible' || !isRunning || !activeWorkout) return;
+    const state = data.activeWorkoutState;
+    if (!state || !state.lastTs) return;
+    const delta = Math.max(0, Math.floor((Date.now() - state.lastTs) / 1000));
+    if (delta <= 2) return;
+    suppressTransitionAlert = true;
+    const prevSegIdx = segIdx;
+    advanceBySeconds(delta);
+    if (segIdx !== prevSegIdx) forceNewTrackSegment = true;
+    if (segIdx >= activeWorkout.segments.length) {
+      stopTimer();
+      if (data.audioMode === 'beeps' && !data.audioMuted) {
+        beepDone();
+      } else {
+        playVoice('workout_done');
+      }
+      vibrate([200, 100, 200, 100, 400]);
+      showComplete();
+      persistWorkoutState('complete');
+      return;
+    }
+    renderWorkoutState();
+    persistWorkoutState('in-progress');
+  });
 
   document.addEventListener('DOMContentLoaded', () => {
     init();

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'c25k-pwa-v1';
+const CACHE_NAME = 'c25k-pwa-v2';
 const CORE_ASSETS = [
   './',
   'index.html',
@@ -7,6 +7,7 @@ const CORE_ASSETS = [
   'ui.js',
   'utils.js',
   'plan.js',
+  'tick-worker.js',
   'manifest.webmanifest',
   'sample_history.json',
   'icons/favicon.svg',

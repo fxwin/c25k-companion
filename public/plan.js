@@ -25,6 +25,8 @@
     { week: 0, day: 1, segments: [
       { type: 'warmup', duration: 5 },
       { type: 'jog', duration: 3 }, { type: 'walk', duration: 3 },
+      { type: 'jog', duration: 3 }, { type: 'walk', duration: 3 },
+      { type: 'jog', duration: 3 }, { type: 'walk', duration: 3 },
     ]},
     // Week 1
     { week: 1, day: 1, segments: [warmup(), ...alternate(60, 90, 20)] },
