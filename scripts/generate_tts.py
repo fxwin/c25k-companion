@@ -3,7 +3,7 @@
 #   "elevenlabs",
 # ]
 # ///
-
+# run with uv run generate_tts.py, requires ELEVENLABS_API_KEY env-variable to be set
 import json
 import os
 from pathlib import Path

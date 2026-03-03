@@ -1047,17 +1047,26 @@
           baseTs: now - 8 * 86400000,
           track: [
             { lat: 37.7760, lng: -122.4310, ts: 0, type: 'warmup' },
-            { lat: 37.7766, lng: -122.4302, ts: 2, type: 'warmup' },
-            { lat: 37.7772, lng: -122.4294, ts: 4, type: 'jog' },
-            { lat: 37.7778, lng: -122.4286, ts: 6, type: 'walk' },
-            { lat: 37.7784, lng: -122.4278, ts: 8, type: 'jog' },
-            { lat: 37.7790, lng: -122.4270, ts: 10, type: 'walk' },
-            { lat: 37.7796, lng: -122.4262, ts: 12, type: 'jog' },
-            { lat: 37.7802, lng: -122.4254, ts: 14, type: 'walk' },
-            { lat: 37.7808, lng: -122.4246, ts: 16, type: 'jog' },
-            { lat: 37.7814, lng: -122.4238, ts: 18, type: 'walk' },
-            { lat: 37.7820, lng: -122.4230, ts: 20, type: 'jog' },
-            { lat: 37.7826, lng: -122.4222, ts: 22, type: 'walk' }
+            { lat: 37.7764, lng: -122.4306, ts: 1, type: 'warmup' },
+            { lat: 37.7768, lng: -122.4302, ts: 2, type: 'warmup' },
+            { lat: 37.7772, lng: -122.4298, ts: 3, type: 'jog' },
+            { lat: 37.7776, lng: -122.4294, ts: 4, type: 'jog' },
+            { lat: 37.7780, lng: -122.4290, ts: 5, type: 'jog' },
+            { lat: 37.7784, lng: -122.4286, ts: 6, type: 'walk' },
+            { lat: 37.7788, lng: -122.4282, ts: 7, type: 'walk' },
+            { lat: 37.7792, lng: -122.4278, ts: 8, type: 'walk' },
+            { lat: 37.7796, lng: -122.4274, ts: 9, type: 'jog' },
+            { lat: 37.7800, lng: -122.4270, ts: 10, type: 'jog' },
+            { lat: 37.7804, lng: -122.4266, ts: 11, type: 'jog' },
+            { lat: 37.7808, lng: -122.4262, ts: 12, type: 'walk' },
+            { lat: 37.7812, lng: -122.4258, ts: 13, type: 'walk' },
+            { lat: 37.7816, lng: -122.4254, ts: 14, type: 'walk' },
+            { lat: 37.7820, lng: -122.4250, ts: 15, type: 'jog' },
+            { lat: 37.7824, lng: -122.4246, ts: 16, type: 'jog' },
+            { lat: 37.7828, lng: -122.4242, ts: 17, type: 'jog' },
+            { lat: 37.7832, lng: -122.4238, ts: 18, type: 'walk' },
+            { lat: 37.7836, lng: -122.4234, ts: 19, type: 'walk' },
+            { lat: 37.7840, lng: -122.4230, ts: 20, type: 'walk' }
           ]
         }
       ];

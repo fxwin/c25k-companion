@@ -16,7 +16,7 @@
   <section id="setup-screen" class="screen" hidden>
     <div class="container">
       <button id="setup-back-btn" class="btn btn-icon" hidden>← Back</button>
-      <h1>Couch to 5K</h1>
+      <h1><a href="https://c25k.com/" target="_blank" rel="noopener" class="title-link">Couch to 5K</a></h1>
       <p class="subtitle">Welcome! Pick your 3 workout days to get started.</p>
       <div id="day-picker" class="day-picker">
         <button class="day-btn" data-day="1">Mon</button>
@@ -52,12 +52,15 @@
   <section id="home-screen" class="screen" hidden>
     <div class="container">
       <header class="home-header">
-        <h1>C25K</h1>
-        <div id="recent-jog-pace" class="recent-pace" hidden></div>
-        <div id="race-countdown" class="race-countdown"></div>
+        <div class="home-row">
+          <h1><a href="https://c25k.com/" target="_blank" rel="noopener" class="title-link">Couch to 5K</a></h1>
+          <div id="recent-jog-pace" class="recent-pace" hidden></div>
+        </div>
+        <div class="home-row">
+          <div id="next-workout-info" class="next-workout-info"></div>
+          <div id="race-countdown" class="race-countdown"></div>
+        </div>
       </header>
-
-      <div id="next-workout-info" class="next-workout-info"></div>
 
       <div class="card recommended-card">
         <div id="recommended-label" class="card-label">Recommended Workout</div>
@@ -209,14 +212,19 @@
 
   <div class="dev-mode">
     <a class="footer-link footer-icon" href="https://github.com/fxwin/c25k-companion" target="_blank" rel="noopener">
-      <img src="icons/github_logo_2.svg" alt="GitHub" />
+      <img src="icons/github_logo.svg" alt="GitHub" />
     </a>
     <a class="footer-link" href="https://www.fxwin.net" target="_blank" rel="noopener">by Felix Winterhalter 🌐</a>
-    <span class="dev-label">Developer Mode</span>
+    <span class="dev-label">Developer/Demo Mode</span>
     <label class="switch">
       <input id="dev-mode-toggle" type="checkbox" />
       <span class="switch-slider"></span>
     </label>
+  </div>
+
+  <div class="demo-footer-hint" aria-live="polite">
+    <img class="demo-arrow" src="icons/arrow_curved_green.svg" alt="" aria-hidden="true" />
+    <span>If you are just here to see what this is, or don't want to set this up right now, feel free to toggle demo mode. This will enable some default settings + dummy data so you can look around!</span>
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
