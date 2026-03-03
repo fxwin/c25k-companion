@@ -35,6 +35,7 @@
   const historyMaps = new WeakMap();
   const statsCharts = {};
   const audioCache = {};
+  const VOICE_GAIN = 2.5;
 
   function persistWorkoutState(status) {
     if (activeWorkoutIdx === null) return;
@@ -69,13 +70,29 @@
   function playVoice(key) {
     if (!key || data.audioMuted || data.audioMode === 'mute' || data.audioMode === 'beeps') return;
     const path = `audio/${data.audioMode}/${key}.mp3`;
-    let audio = audioCache[path];
-    if (!audio) {
-      audio = new Audio(path);
-      audioCache[path] = audio;
+    let cached = audioCache[path];
+    if (!cached) {
+      const el = new Audio(path);
+      let gainNode = null;
+      try {
+        const ctx = ns.getAudioCtx();
+        const source = ctx.createMediaElementSource(el);
+        gainNode = ctx.createGain();
+        gainNode.gain.value = VOICE_GAIN;
+        source.connect(gainNode);
+        gainNode.connect(ctx.destination);
+      } catch (_) {
+        gainNode = null;
+      }
+      cached = { el, gainNode };
+      audioCache[path] = cached;
     }
-    audio.currentTime = 0;
-    audio.play().catch(() => {});
+    const ctx = ns.getAudioCtx();
+    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+    if (cached.gainNode) cached.gainNode.gain.value = VOICE_GAIN;
+    cached.el.volume = 1;
+    cached.el.currentTime = 0;
+    cached.el.play().catch(() => {});
   }
 
   function currentSegmentType() {
