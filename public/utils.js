@@ -102,6 +102,35 @@
     setTimeout(() => ns.beep(880, 150), 200);
   };
 
+  // ─── Silent audio keepalive (prevents OS from throttling) ─
+  let silentSource = null;
+  ns.startSilentAudio = function () {
+    if (silentSource) return;
+    try {
+      const ctx = ns.getAudioCtx();
+      if (ctx.state === 'suspended') ctx.resume();
+      // 1-second silent buffer, looped
+      const buf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      src.loop = true;
+      // Near-zero gain — keeps audio session alive without audible output
+      const gain = ctx.createGain();
+      gain.gain.value = 0.001;
+      src.connect(gain);
+      gain.connect(ctx.destination);
+      src.start();
+      silentSource = src;
+    } catch (_) { /* silent fail */ }
+  };
+
+  ns.stopSilentAudio = function () {
+    if (silentSource) {
+      try { silentSource.stop(); } catch (_) {}
+      silentSource = null;
+    }
+  };
+
   ns.beepDone = function () {
     ns.beep(1047, 150);
     setTimeout(() => ns.beep(1319, 150), 180);

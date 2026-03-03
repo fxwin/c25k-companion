@@ -10,6 +10,7 @@
           raceCountdownText, nextWorkoutText,
           distanceMeters, formatDistance,
           beep, beepTransition, beepDone, vibrate,
+          startSilentAudio, stopSilentAudio,
           showScreen, buildTimelineBar, buildActiveTimeline,
           buildProgramOverview } = ns;
 
@@ -532,6 +533,7 @@
     updateControls();
     persistWorkoutState('in-progress');
     startTracking();
+    startSilentAudio();
   }
 
   function stopTimer() {
@@ -544,6 +546,7 @@
     updateControls();
     persistWorkoutState('in-progress');
     stopTracking();
+    stopSilentAudio();
   }
 
   function restartWorkout() {
