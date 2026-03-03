@@ -39,6 +39,10 @@
   const statsCharts = {};
   const audioCache = {};
   const VOICE_GAIN = 3;
+  const audioBufferCache = {};
+  let scheduledSources = [];
+  let scheduledGainNode = null;
+  let scheduledAudioActive = false;
 
   function persistWorkoutState(status) {
     if (activeWorkoutIdx === null) return;
@@ -71,6 +75,7 @@
   }
 
   function playVoice(key) {
+    if (scheduledAudioActive) return;
     if (!key || data.audioMuted || data.audioMode === 'mute' || data.audioMode === 'beeps') return;
     const path = `audio/${data.audioMode}/${key}.mp3`;
     let cached = audioCache[path];
@@ -104,8 +109,8 @@
     return entry;
   }
 
-  function preloadWorkoutAudio(workout) {
-    if (data.audioMode === 'mute' || data.audioMode === 'beeps') return;
+  // ─── Scheduled workout audio (Web Audio API timeline) ─────
+  function collectVoiceKeys(workout) {
     const keys = new Set(['start_now', 'workout_done']);
     const warmupSeg = workout.segments.find(s => s.type === 'warmup');
     if (warmupSeg) keys.add(`get_ready_warmup_${warmupSeg.duration}`);
@@ -113,9 +118,86 @@
       const key = getVoiceKeyForReady(seg, workout.week);
       if (key) keys.add(key);
     }
-    for (const key of keys) {
-      const path = `audio/${data.audioMode}/${key}.mp3`;
-      if (!audioCache[path]) createVoiceEntry(path);
+    return keys;
+  }
+
+  async function decodeVoiceline(key) {
+    const mode = data.audioMode;
+    const cacheKey = `${mode}/${key}`;
+    if (audioBufferCache[cacheKey]) return audioBufferCache[cacheKey];
+    try {
+      const path = `audio/${mode}/${key}.mp3`;
+      const response = await fetch(path);
+      const arrayBuf = await response.arrayBuffer();
+      const ctx = ns.getAudioCtx();
+      const audioBuf = await ctx.decodeAudioData(arrayBuf);
+      audioBufferCache[cacheKey] = audioBuf;
+      return audioBuf;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function buildAudioSchedule(workout) {
+    const events = [];
+    const firstSeg = workout.segments[0];
+    // Pre-start: get_ready for first segment
+    events.push({ time: 0, key: `get_ready_${firstSeg.type}_${firstSeg.duration}` });
+    // After pre-start countdown: start
+    events.push({ time: START_BUFFER_SECS, key: 'start_now' });
+    let t = START_BUFFER_SECS;
+    for (let i = 0; i < workout.segments.length; i++) {
+      t += workout.segments[i].duration;
+      if (i < workout.segments.length - 1) {
+        const nextSeg = workout.segments[i + 1];
+        const readyKey = getVoiceKeyForReady(nextSeg, workout.week);
+        if (readyKey) events.push({ time: t, key: readyKey });
+        t += TRANSITION_SECS;
+        events.push({ time: t, key: 'start_now' });
+      } else {
+        events.push({ time: t, key: 'workout_done' });
+      }
+    }
+    return events;
+  }
+
+  async function preloadWorkoutAudio(workout) {
+    if (data.audioMode === 'mute' || data.audioMode === 'beeps') return;
+    const keys = collectVoiceKeys(workout);
+    await Promise.all([...keys].map(k => decodeVoiceline(k)));
+  }
+
+  function scheduleWorkoutAudio(workout) {
+    cancelScheduledAudio();
+    if (data.audioMode === 'mute' || data.audioMode === 'beeps') return;
+    const schedule = buildAudioSchedule(workout);
+    const ctx = ns.getAudioCtx();
+    scheduledGainNode = ctx.createGain();
+    scheduledGainNode.gain.value = data.audioMuted ? 0 : VOICE_GAIN;
+    scheduledGainNode.connect(ctx.destination);
+    const baseTime = ctx.currentTime;
+    for (const event of schedule) {
+      const cacheKey = `${data.audioMode}/${event.key}`;
+      const buffer = audioBufferCache[cacheKey];
+      if (!buffer) continue;
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(scheduledGainNode);
+      source.start(baseTime + event.time);
+      scheduledSources.push(source);
+    }
+    scheduledAudioActive = true;
+  }
+
+  function cancelScheduledAudio() {
+    for (const src of scheduledSources) {
+      try { src.stop(); } catch (_) {}
+    }
+    scheduledSources = [];
+    scheduledAudioActive = false;
+    if (scheduledGainNode) {
+      try { scheduledGainNode.disconnect(); } catch (_) {}
+      scheduledGainNode = null;
     }
   }
 
@@ -480,7 +562,10 @@
       segIdx++;
       segElapsed = 0;
       if (segIdx >= activeWorkout.segments.length) {
+        cancelScheduledAudio();
         stopTimer();
+        const ctx = ns.getAudioCtx();
+        if (ctx.state === 'suspended') ctx.resume().catch(() => {});
         if (data.audioMode === 'beeps' && !data.audioMuted) {
           beepDone();
         } else {
@@ -532,11 +617,13 @@
     const ctx = ns.getAudioCtx();
     if (ctx.state === 'suspended') ctx.resume();
     isRunning = true;
-    if (totalElapsed === 0 && segIdx === 0 && segElapsed === 0 && transitionCountdown === 0) {
+    const isFreshStart = totalElapsed === 0 && segIdx === 0 && segElapsed === 0 && transitionCountdown === 0;
+    if (isFreshStart) {
       if (preStartCountdown === 0) preStartCountdown = START_BUFFER_SECS;
       if (!preStartAnnounced) {
-        playVoice('get_ready_warmup_300');
         preStartAnnounced = true;
+        // Schedule all voicelines on the audio timeline (plays reliably in background)
+        scheduleWorkoutAudio(activeWorkout);
       }
     }
     // Prefer Web Worker timer (not throttled when backgrounded)
@@ -568,11 +655,21 @@
     updateControls();
     persistWorkoutState('in-progress');
     stopTracking();
-    stopSilentAudio();
+    if (scheduledAudioActive) {
+      // Suspending the context freezes the audio clock — all scheduled
+      // sources pause in place and resume at the right time later.
+      ns.getAudioCtx().suspend().catch(() => {});
+    } else {
+      stopSilentAudio();
+    }
   }
 
   function restartWorkout() {
     stopTimer();
+    cancelScheduledAudio();
+    // Resume ctx in case it was suspended by stopTimer
+    const ctx = ns.getAudioCtx();
+    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
     segIdx = 0;
     segElapsed = 0;
     totalElapsed = 0;
@@ -1175,10 +1272,22 @@
     if (workoutAudioSelect) {
       workoutAudioSelect.value = data.audioMode || 'beeps';
       workoutAudioSelect.addEventListener('change', () => {
+        const prevMode = data.audioMode;
         data.audioMode = workoutAudioSelect.value;
         data.audioMuted = data.audioMode === 'mute';
         saveData(data);
         syncWorkoutAudioControls();
+        // If mode changed while workout is running, reschedule audio
+        if (isRunning && activeWorkout && prevMode !== data.audioMode) {
+          cancelScheduledAudio();
+          if (data.audioMode !== 'beeps' && data.audioMode !== 'mute') {
+            preloadWorkoutAudio(activeWorkout).then(() => {
+              // Reschedule from current position would be complex;
+              // the remaining voicelines are best-effort after a mode switch
+              scheduleWorkoutAudio(activeWorkout);
+            });
+          }
+        }
         playAudioSample(data.audioMode);
       });
     }
@@ -1187,6 +1296,9 @@
         data.audioMuted = !data.audioMuted;
         saveData(data);
         syncWorkoutAudioControls();
+        if (scheduledGainNode) {
+          scheduledGainNode.gain.value = data.audioMuted ? 0 : VOICE_GAIN;
+        }
         if (!data.audioMuted) playAudioSample(data.audioMode);
       });
     }
@@ -1210,6 +1322,9 @@
     $('#ctrl-restart').addEventListener('click', restartWorkout);
     $('#workout-back-btn').addEventListener('click', () => {
       stopTimer();
+      cancelScheduledAudio();
+      const ctx = ns.getAudioCtx();
+      if (ctx.state === 'suspended') ctx.resume().catch(() => {});
       clearWorkoutState();
       activeWorkout = null;
       activeWorkoutIdx = null;
@@ -1286,7 +1401,10 @@
     advanceBySeconds(delta);
     if (segIdx !== prevSegIdx) forceNewTrackSegment = true;
     if (segIdx >= activeWorkout.segments.length) {
+      cancelScheduledAudio();
       stopTimer();
+      const ctx = ns.getAudioCtx();
+      if (ctx.state === 'suspended') ctx.resume().catch(() => {});
       if (data.audioMode === 'beeps' && !data.audioMuted) {
         beepDone();
       } else {
