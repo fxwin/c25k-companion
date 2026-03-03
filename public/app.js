@@ -822,7 +822,7 @@
       </div>
     `;
 
-    renderLineChart(distanceChart, distances, '#2E7D32', v => formatDistance(v));
+    renderLineChart(distanceChart, distances, '#2E7D32', v => formatDistance(v), { yAxisWidth: 64 });
     if (jogPaces.length > 0) {
       renderLineChart(paceChart, jogPaces, '#1E88E5', v => formatPace(v) + '/km', { yAxisWidth: 64 });
     } else {
@@ -1071,6 +1071,7 @@
         }
       ];
 
+      const ratings = [3, 5, 4, 2, 4, 1, 5, 3];
       samples.forEach((s, i) => {
         const track = s.track.map(p => ({
           lat: p.lat,
@@ -1084,7 +1085,7 @@
           label: s.label,
           date: new Date(s.baseTs).toISOString(),
           duration: stats.totalTime,
-          rating: 4,
+          rating: ratings[i % ratings.length],
           track,
           trackStats: stats,
         });
