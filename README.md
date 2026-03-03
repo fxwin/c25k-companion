@@ -17,4 +17,4 @@ I didn't want to bother with 3rd party apps or websites, had a pretty specific s
 TTS powered by Elevenlabs
 
 ## What's Dev Mode?
-Dev mode switches to dummy workout data so I can iterate faster when making changes. Nothing to be gained here I'm afraid (Feel free to enable it though to get an idea of what the stats page can look like though!)
+Dev mode switches to dummy workout data so I can iterate faster when making changes. Nothing to be gained here I'm afraid (Feel free to enable it to get an idea of what the stats page can look like though!)
