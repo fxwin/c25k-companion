@@ -448,14 +448,10 @@ h2 { font-size: 1.25rem; font-weight: 600; }
 .btn-muted { color: var(--gray-500); }
 
 /* ===== HISTORY MAP (INLINE) ===== */
-.history-entry { margin-bottom: 0.75rem; }
+.history-entry { margin-bottom: 0.75rem; overflow: hidden; }
 .history-map-inline {
-  background: var(--white);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
+  margin: 0.5rem -1rem 0;
   padding: 0;
-  margin-top: 0.5rem;
-  overflow: hidden;
 }
 .history-map-canvas {
   height: 280px;
@@ -463,7 +459,7 @@ h2 { font-size: 1.25rem; font-weight: 600; }
   margin-bottom: 0;
 }
 .history-map-stats {
-  padding: 0.75rem;
+  padding: 0.75rem 1rem;
 }
 .history-map-stats {
   display: grid; gap: 0.35rem;
