@@ -478,20 +478,47 @@ h2 { font-size: 1.25rem; font-weight: 600; }
   margin: 0.15rem 0;
 }
 .segment-label {
-  background: rgba(255,255,255,0.85);
-  border: 1px solid var(--gray-200);
   border-radius: 999px;
-  padding: 0.1rem 0.35rem;
+  padding: 0.15rem 0.35rem;
   min-width: 0;
   text-align: center;
   font-size: 0.6rem; font-weight: 600;
-  color: var(--gray-800);
+  color: #000;
   box-shadow: var(--shadow);
   line-height: 1.05;
   white-space: nowrap;
   pointer-events: none;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+.segment-label--warmup {
+  background: rgba(251,140,0,0.5);
+}
+.segment-label--jog {
+  background: rgba(46,125,50,0.5);
+}
+.segment-label--walk {
+  background: rgba(30,136,229,0.5);
 }
 .segment-label-line { display: block; text-align: center; }
+.map-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  font-size: 0.5rem;
+  color: #fff;
+  pointer-events: none;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  line-height: 1;
+}
+.map-marker--start { background: #66bb6a; }
+.map-marker--end { background: #ef5350; }
 
 /* ===== PROGRAM OVERVIEW ===== */
 .program-overview {

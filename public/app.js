@@ -594,8 +594,9 @@
     $('#history-empty').hidden = true;
     $('#history-clear-btn').hidden = false;
     const ratingEmojis = ['', '😫', '😕', '😐', '🙂', '😄'];
-    [...data.history].reverse().forEach((h, ri) => {
-      const realIdx = data.history.length - 1 - ri;
+    const sorted = [...data.history].sort((a, b) => new Date(b.date) - new Date(a.date));
+    sorted.forEach((h, ri) => {
+      const realIdx = data.history.indexOf(h);
       const d = new Date(h.date);
       const dateStr = d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
       const timeStr = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
@@ -901,10 +902,51 @@
     }
 
     const layer = L.layerGroup();
-    segments.forEach((seg, i) => {
+
+    // Determine start/end trim if the route loops back close to the start
+    const allPts = segments.flatMap(s => s.points);
+    let trimStart = 0;
+    let trimEnd = allPts.length - 1;
+    const minSep = 20; // meters
+    if (distanceMeters({ lat: allPts[0][0], lng: allPts[0][1] }, { lat: allPts[allPts.length - 1][0], lng: allPts[allPts.length - 1][1] }) < minSep) {
+      for (let i = 1; i < allPts.length; i++) {
+        if (distanceMeters({ lat: allPts[i][0], lng: allPts[i][1] }, { lat: allPts[allPts.length - 1][0], lng: allPts[allPts.length - 1][1] }) >= minSep) {
+          trimStart = i;
+          break;
+        }
+      }
+      for (let i = allPts.length - 2; i >= 0; i--) {
+        if (distanceMeters({ lat: allPts[i][0], lng: allPts[i][1] }, { lat: allPts[trimStart][0], lng: allPts[trimStart][1] }) >= minSep) {
+          trimEnd = i;
+          break;
+        }
+      }
+    }
+
+    // Trim segments to the visible range [trimStart, trimEnd]
+    let globalIdx = 0;
+    const trimmedSegments = [];
+    segments.forEach(seg => {
+      const segEnd = globalIdx + seg.points.length - 1;
+      const visStart = Math.max(globalIdx, trimStart);
+      const visEnd = Math.min(segEnd, trimEnd);
+      if (visStart <= visEnd) {
+        const sliceFrom = visStart - globalIdx;
+        const sliceTo = visEnd - globalIdx + 1;
+        trimmedSegments.push({
+          type: seg.type,
+          points: seg.points.slice(sliceFrom, sliceTo),
+          distance: seg.distance,
+          time: seg.time,
+        });
+      }
+      globalIdx += seg.points.length;
+    });
+
+    trimmedSegments.forEach((seg, i) => {
       // Draw connector from previous segment's last point to this segment's first point
       if (i > 0) {
-        const prevSeg = segments[i - 1];
+        const prevSeg = trimmedSegments[i - 1];
         const prevColor = prevSeg.type === 'warmup' ? warmupColor : prevSeg.type === 'jog' ? jogColor : walkColor;
         const prevLast = prevSeg.points[prevSeg.points.length - 1];
         const curFirst = seg.points[0];
@@ -930,8 +972,18 @@
         <div class="segment-label-line">${formatDurationShort(seg.time)}</div>
       `;
       const icon = L.divIcon({ className: 'segment-label', html: label, iconSize: [60, 28], iconAnchor: [30, 14] });
+      icon.options.className += ' segment-label--' + seg.type;
       L.marker([offLat, offLng], { icon, interactive: false }).addTo(layer);
     });
+
+    // Start and end markers
+    const startPos = allPts[trimStart];
+    const endPos = allPts[trimEnd];
+    const startIcon = L.divIcon({ className: 'map-marker map-marker--start', html: '▶', iconSize: [20, 20], iconAnchor: [10, 10] });
+    const endIcon = L.divIcon({ className: 'map-marker map-marker--end', html: '■', iconSize: [20, 20], iconAnchor: [10, 10] });
+    L.marker(startPos, { icon: startIcon, interactive: false }).addTo(layer);
+    L.marker(endPos, { icon: endIcon, interactive: false }).addTo(layer);
+
     layer.addTo(map);
     map._c25kLayer = layer;
 
