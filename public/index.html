@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <script defer src="https://cloud.umami.is/script.js" data-website-id="cf4b3f6e-1d49-48e1-ba4a-1b65d7b807af"></script>
   <meta charset="UTF-8">
@@ -10,10 +11,12 @@
   <link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icons/favicon.svg">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
   <title>C25K Companion</title>
   <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
   <!-- SETUP SCREEN -->
   <section id="setup-screen" class="screen" hidden>
@@ -155,6 +158,13 @@
       </div>
 
       <button id="complete-done-btn" class="btn btn-primary btn-large" disabled>Save & Continue</button>
+
+      <div class="donate-row">
+        <a class="donate-link" href="https://ko-fi.com/fxwin" target="_blank" rel="noopener">
+          <img src="icons/kofi_symbol.svg" alt="Ko-fi" class="donate-logo">
+          <span>Buy me a coffee</span>
+        </a>
+      </div>
     </div>
   </section>
 
@@ -195,11 +205,13 @@
       <div class="stats-charts">
         <div class="stats-card">
           <div id="stats-distance-title" class="stats-card-title">Distance (last 10)</div>
-          <div class="stats-chart-wrap"><canvas id="stats-distance-chart" aria-label="Distance chart" role="img"></canvas></div>
+          <div class="stats-chart-wrap"><canvas id="stats-distance-chart" aria-label="Distance chart"
+              role="img"></canvas></div>
         </div>
         <div class="stats-card">
           <div id="stats-pace-title" class="stats-card-title">Jog Pace (last 10)</div>
-          <div class="stats-chart-wrap"><canvas id="stats-pace-chart" aria-label="Jog pace chart" role="img"></canvas></div>
+          <div class="stats-chart-wrap"><canvas id="stats-pace-chart" aria-label="Jog pace chart" role="img"></canvas>
+          </div>
         </div>
         <div class="stats-card">
           <div id="stats-mood-title" class="stats-card-title">Mood (last 10)</div>
@@ -207,7 +219,8 @@
         </div>
         <div class="stats-card">
           <div class="stats-card-title">Mood Distribution</div>
-          <div class="stats-chart-wrap"><canvas id="stats-mood-dist" aria-label="Mood distribution" role="img"></canvas></div>
+          <div class="stats-chart-wrap"><canvas id="stats-mood-dist" aria-label="Mood distribution" role="img"></canvas>
+          </div>
         </div>
       </div>
     </div>
@@ -217,8 +230,13 @@
     <a class="footer-link footer-icon" href="https://github.com/fxwin/c25k-companion" target="_blank" rel="noopener">
       <img src="icons/github_logo.svg" alt="GitHub" />
     </a>
-    <a class="footer-link" href="https://www.fxwin.net" target="_blank" rel="noopener">by Felix Winterhalter 🌐</a>
-    <span class="dev-label">Developer/Demo Mode</span>
+    <a class="footer-link footer-name" href="https://www.fxwin.net" target="_blank" rel="noopener">
+      <span>by Felix Winterhalter</span>
+    </a>
+    <a class="footer-link footer-icon" href="https://ko-fi.com/fxwin" target="_blank" rel="noopener">
+      <img src="icons/kofi_symbol.svg" alt="Ko-fi" />
+    </a>
+    <span class="dev-label"> Developer/Demo Mode</span>
     <label class="switch">
       <input id="dev-mode-toggle" type="checkbox" />
       <span class="switch-slider"></span>
@@ -227,14 +245,17 @@
 
   <div class="demo-footer-hint" aria-live="polite">
     <img class="demo-arrow" src="icons/arrow_curved_green.svg" alt="" aria-hidden="true" />
-    <span>If you are just here to see what this is, or don't want to set this up right now, feel free to toggle demo mode. This will enable some default settings + dummy data so you can look around!</span>
+    <span>If you are just here to see what this is, or don't want to set this up right now, feel free to toggle demo
+      mode. This will enable some default settings + dummy data so you can look around!</span>
   </div>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="plan.js"></script>
   <script src="utils.js"></script>
   <script src="ui.js"></script>
   <script src="app.js"></script>
 </body>
+
 </html>

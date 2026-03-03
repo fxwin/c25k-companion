@@ -51,6 +51,8 @@ body {
 .footer-link:hover { text-decoration: underline; }
 .footer-icon { display: inline-flex; align-items: center; }
 .footer-icon img { width: 16px; height: 16px; display: block; }
+.footer-name { display: inline-flex; align-items: center; gap: 0.35rem; }
+.footer-name img { width: 14px; height: 14px; display: block; }
 .demo-footer-hint {
   position: fixed;
   left: 50%; bottom: 56px;
@@ -391,7 +393,18 @@ h2 { font-size: 1.25rem; font-weight: 600; }
 .complete-celebration { font-size: 3rem; text-align: center; margin-bottom: 0.5rem; padding-top: 2rem; }
 #complete-screen h1 { text-align: center; margin-bottom: 0.25rem; }
 #complete-screen p { text-align: center; color: var(--gray-600); }
-#complete-duration { margin-bottom: 1.5rem; }
+#complete-duration { margin-bottom: 0.75rem; }
+
+.donate-row { display: flex; justify-content: center; margin: 1rem 0 0.5rem; }
+.donate-link {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  background: #f7f3f0; color: var(--gray-800);
+  padding: 0.5rem 0.75rem; border-radius: 999px;
+  text-decoration: none; font-weight: 600; font-size: 0.85rem;
+  box-shadow: var(--shadow);
+}
+.donate-link:hover { background: #f1e8e2; }
+.donate-logo { width: 18px; height: 18px; display: block; }
 
 .rating-section { margin-bottom: 1.5rem; }
 .rating-label { font-weight: 600; text-align: center; margin-bottom: 0.5rem; color: var(--gray-800); }

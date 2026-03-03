@@ -1,7 +1,7 @@
 ## What is this?
 [Couch to 5k](https://c25k.com/c25k_plan/) (C25K) is a running program to get someone with no running experience to run a 5k in 8-9 weeks, and this is a companion app for it.
 
-No login or download required, no ads, completely free, and all your data stays on your device.
+No login or download required (Available as PWA), no ads, completely free, and all your data stays on your device.
 
 ## Screenshots
 
