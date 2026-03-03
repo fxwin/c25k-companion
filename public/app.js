@@ -75,20 +75,7 @@
     const path = `audio/${data.audioMode}/${key}.mp3`;
     let cached = audioCache[path];
     if (!cached) {
-      const el = new Audio(path);
-      let gainNode = null;
-      try {
-        const ctx = ns.getAudioCtx();
-        const source = ctx.createMediaElementSource(el);
-        gainNode = ctx.createGain();
-        gainNode.gain.value = VOICE_GAIN;
-        source.connect(gainNode);
-        gainNode.connect(ctx.destination);
-      } catch (_) {
-        gainNode = null;
-      }
-      cached = { el, gainNode };
-      audioCache[path] = cached;
+      cached = createVoiceEntry(path);
     }
     const ctx = ns.getAudioCtx();
     if (ctx.state === 'suspended') ctx.resume().catch(() => {});
@@ -96,6 +83,40 @@
     cached.el.volume = 1;
     cached.el.currentTime = 0;
     cached.el.play().catch(() => {});
+  }
+
+  function createVoiceEntry(path) {
+    const el = new Audio(path);
+    el.preload = 'auto';
+    let gainNode = null;
+    try {
+      const ctx = ns.getAudioCtx();
+      const source = ctx.createMediaElementSource(el);
+      gainNode = ctx.createGain();
+      gainNode.gain.value = VOICE_GAIN;
+      source.connect(gainNode);
+      gainNode.connect(ctx.destination);
+    } catch (_) {
+      gainNode = null;
+    }
+    const entry = { el, gainNode };
+    audioCache[path] = entry;
+    return entry;
+  }
+
+  function preloadWorkoutAudio(workout) {
+    if (data.audioMode === 'mute' || data.audioMode === 'beeps') return;
+    const keys = new Set(['start_now', 'workout_done']);
+    const warmupSeg = workout.segments.find(s => s.type === 'warmup');
+    if (warmupSeg) keys.add(`get_ready_warmup_${warmupSeg.duration}`);
+    for (const seg of workout.segments) {
+      const key = getVoiceKeyForReady(seg, workout.week);
+      if (key) keys.add(key);
+    }
+    for (const key of keys) {
+      const path = `audio/${data.audioMode}/${key}.mp3`;
+      if (!audioCache[path]) createVoiceEntry(path);
+    }
   }
 
   function currentSegmentType() {
@@ -361,6 +382,7 @@
     updateControls();
     persistWorkoutState('in-progress');
     syncWorkoutAudioControls();
+    preloadWorkoutAudio(activeWorkout);
   }
 
   function renderWorkoutState() {
