@@ -29,4 +29,4 @@ TTS powered by Elevenlabs
 Dev mode switches to dummy workout data so I can iterate faster when making changes. Nothing to be gained here I'm afraid (Feel free to enable it to get an idea of what the stats page can look like though!)
 
 ## Known Issues
-- Audio playback while in background/lock screen, especially for the PWA. Firefox mobile app seems to work fine
+- Audio playback while in background/lock screen in some cases, Firefox mobile app seems to work fine
