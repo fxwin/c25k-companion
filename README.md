@@ -5,9 +5,12 @@ No login or download required, no ads, completely free, and all your data stays 
 
 ## Screenshots
 
-| | | | |
-|:---:|:---:|:---:|:---:|
-| ![Screenshot 1](screens/screenshot_1.jpg) | ![Screenshot 2](screens/screenshot_2.jpg) | ![Screenshot 3](screens/screenshot_3.jpg) | ![Screenshot 4](screens/screenshot_4.jpg) |
+<p align="center">
+  <img src="screens/screenshot_1.jpg" width="24%" />
+  <img src="screens/screenshot_2.jpg" width="24%" />
+  <img src="screens/screenshot_3.jpg" width="24%" />
+  <img src="screens/screenshot_4.jpg" width="24%" />
+</p>
 
 ## Features
 - Preset workout following the plan linked above
