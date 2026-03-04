@@ -33,6 +33,7 @@
   let selectedDays = new Set();
   let suppressTransitionAlert = false;
   let watchId = null;
+  let gpsPollInterval = null;
   let track = [];
   let forceNewTrackSegment = false;
   const historyMaps = new WeakMap();
@@ -258,29 +259,73 @@
     return seg ? seg.type : 'walk';
   }
 
+  function addTrackPoint(lat, lng, timestamp) {
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
+    const rawTs = Number.isFinite(timestamp) ? timestamp : Date.now();
+    let lastPoint = null;
+    if (track.length > 0) {
+      const lastSeg = track[track.length - 1];
+      if (lastSeg && Array.isArray(lastSeg.coords) && lastSeg.coords.length > 0) {
+        lastPoint = lastSeg.coords[lastSeg.coords.length - 1];
+      }
+    }
+    const ts = lastPoint && rawTs <= lastPoint.ts ? lastPoint.ts + 1000 : rawTs;
+    const coord = { lat, lng, ts };
+
+    const type = currentSegmentType();
+    const lastSeg = track.length > 0 ? track[track.length - 1] : null;
+    if (!forceNewTrackSegment && lastSeg && lastSeg.type === type) {
+      const prev = lastSeg.coords[lastSeg.coords.length - 1];
+      if (!prev) {
+        lastSeg.coords.push(coord);
+      } else {
+        const movedMeters = distanceMeters(prev, coord);
+        const dtMs = coord.ts - prev.ts;
+        if (movedMeters >= 1.5 || dtMs >= 3000) {
+          lastSeg.coords.push(coord);
+        }
+      }
+    } else {
+      track.push({ type, coords: [coord] });
+      forceNewTrackSegment = false;
+    }
+
+    if (data.activeWorkoutState) data.activeWorkoutState.track = track;
+    scheduleDataWrite(false);
+  }
+
   function startTracking() {
     if (!navigator.geolocation || watchId !== null) return;
+
+    const geolocationOpts = { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 };
+
     watchId = navigator.geolocation.watchPosition(
       pos => {
-        const coord = {
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-          ts: Number.isFinite(pos.timestamp) ? pos.timestamp : Date.now(),
-        };
-        const type = currentSegmentType();
-        const lastSeg = track.length > 0 ? track[track.length - 1] : null;
-        if (!forceNewTrackSegment && lastSeg && lastSeg.type === type) {
-          lastSeg.coords.push(coord);
-        } else {
-          track.push({ type, coords: [coord] });
-          forceNewTrackSegment = false;
-        }
-        if (data.activeWorkoutState) data.activeWorkoutState.track = track;
-        scheduleDataWrite(false);
+        addTrackPoint(pos.coords.latitude, pos.coords.longitude, pos.timestamp);
       },
       () => {},
-      { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 }
+      geolocationOpts
     );
+
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        addTrackPoint(pos.coords.latitude, pos.coords.longitude, pos.timestamp);
+      },
+      () => {},
+      geolocationOpts
+    );
+
+    gpsPollInterval = setInterval(() => {
+      if (!isRunning || !navigator.geolocation) return;
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          addTrackPoint(pos.coords.latitude, pos.coords.longitude, pos.timestamp);
+        },
+        () => {},
+        geolocationOpts
+      );
+    }, 5000);
   }
 
   function stopTracking() {
@@ -288,6 +333,10 @@
       navigator.geolocation.clearWatch(watchId);
     }
     watchId = null;
+    if (gpsPollInterval) {
+      clearInterval(gpsPollInterval);
+      gpsPollInterval = null;
+    }
   }
 
   function computeTrackStats(trackSegments) {
@@ -389,8 +438,11 @@
 
   function getCompletedWorkoutSet() {
     const done = new Set();
-    const autoDoneUntil = Math.max(0, data.currentWorkout || 0);
-    for (let i = 0; i < autoDoneUntil; i++) done.add(i);
+    const history = Array.isArray(data.history) ? data.history : [];
+    for (const entry of history) {
+      const idx = entry && entry.workoutIdx;
+      if (Number.isInteger(idx) && idx >= 0 && idx < PLAN.length) done.add(idx);
+    }
     const manual = Array.isArray(data.manualCompletedWorkouts) ? data.manualCompletedWorkouts : [];
     for (const idx of manual) {
       if (Number.isInteger(idx) && idx >= 0 && idx < PLAN.length) done.add(idx);
@@ -401,14 +453,17 @@
   function getEffectiveRecommendedWorkoutIndex() {
     if (hasOverride(data)) return data.overrideWorkoutIdx;
     const done = getCompletedWorkoutSet();
-    for (let i = 0; i < PLAN.length; i++) {
-      if (!done.has(i)) return i;
-    }
-    return PLAN.length;
+    if (done.size === 0) return 0;
+    let furthestDone = -1;
+    done.forEach(idx => {
+      if (idx > furthestDone) furthestDone = idx;
+    });
+    return Math.min(PLAN.length, furthestDone + 1);
   }
 
   function toggleManualWorkoutComplete(idx, checked) {
-    const autoDone = idx < (data.currentWorkout || 0);
+    const history = Array.isArray(data.history) ? data.history : [];
+    const autoDone = history.some(entry => entry && entry.workoutIdx === idx);
     if (autoDone) return;
     const set = new Set(Array.isArray(data.manualCompletedWorkouts) ? data.manualCompletedWorkouts : []);
     if (checked) set.add(idx);
@@ -845,8 +900,12 @@
     if (data.history.length === 0) {
       data.currentWorkout = 0;
     } else {
-      const latest = data.history[data.history.length - 1];
-      data.currentWorkout = latest.workoutIdx + 1;
+      let maxIdx = -1;
+      data.history.forEach(entry => {
+        const idx = entry && entry.workoutIdx;
+        if (Number.isInteger(idx) && idx > maxIdx) maxIdx = idx;
+      });
+      data.currentWorkout = maxIdx + 1;
     }
     saveData(data);
   }

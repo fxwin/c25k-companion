@@ -77,17 +77,16 @@
     const PLAN = ns.PLAN;
     const container = $('#program-weeks');
     container.innerHTML = '';
-    const autoDoneUntil = Math.max(0, data.currentWorkout || 0);
+    const historyDone = new Set((Array.isArray(data.history) ? data.history : [])
+      .map(entry => entry && entry.workoutIdx)
+      .filter(idx => Number.isInteger(idx) && idx >= 0 && idx < PLAN.length));
     const manualDone = new Set((Array.isArray(data.manualCompletedWorkouts) ? data.manualCompletedWorkouts : [])
       .filter(idx => Number.isInteger(idx) && idx >= 0 && idx < PLAN.length));
-    const isDoneWorkout = (idx) => idx < autoDoneUntil || manualDone.has(idx);
-    let currentIdx = PLAN.length;
-    for (let i = 0; i < PLAN.length; i++) {
-      if (!isDoneWorkout(i)) {
-        currentIdx = i;
-        break;
-      }
-    }
+    const isDoneWorkout = (idx) => historyDone.has(idx) || manualDone.has(idx);
+    let furthestDone = -1;
+    historyDone.forEach(idx => { if (idx > furthestDone) furthestDone = idx; });
+    manualDone.forEach(idx => { if (idx > furthestDone) furthestDone = idx; });
+    const currentIdx = Math.min(PLAN.length, furthestDone + 1);
 
     for (let week = 1; week <= 9; week++) {
       const weekWorkouts = PLAN.filter(w => w.week === week);
@@ -118,7 +117,7 @@
         const done = isDoneWorkout(woIdx);
         const current = woIdx === currentIdx;
         const selected = ns.hasOverride(data) && data.overrideWorkoutIdx === woIdx;
-        const autoDone = woIdx < autoDoneUntil;
+        const autoDone = historyDone.has(woIdx);
 
         const wrapper = document.createElement('div');
         wrapper.className = 'wo-list-entry';
@@ -184,7 +183,7 @@
 
         setBtn.addEventListener('click', (e) => {
           e.stopPropagation();
-          if (woIdx === data.currentWorkout) {
+          if (woIdx === currentIdx) {
             data.overrideWorkoutIdx = null;
           } else {
             data.overrideWorkoutIdx = woIdx;
