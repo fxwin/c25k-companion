@@ -388,6 +388,11 @@ h2 { font-size: 1.25rem; font-weight: 600; }
 .workout-controls { display: flex; gap: 0.75rem; }
 .workout-controls .btn-secondary { flex: 0 0 auto; width: auto; }
 .workout-controls .btn-primary { flex: 1; }
+.workout-controls .btn-finish-now {
+  background: color-mix(in srgb, var(--orange) 82%, var(--white));
+  color: var(--white);
+}
+.workout-controls .btn-finish-now:hover { background: var(--orange); }
 
 /* ===== COMPLETE SCREEN ===== */
 .complete-celebration { font-size: 3rem; text-align: center; margin-bottom: 0.5rem; padding-top: 2rem; }

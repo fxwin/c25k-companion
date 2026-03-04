@@ -721,18 +721,7 @@
       segIdx++;
       segElapsed = 0;
       if (segIdx >= activeWorkout.segments.length) {
-        cancelScheduledAudio();
-        stopTimer();
-        const ctx = ns.getAudioCtx();
-        if (ctx.state === 'suspended') ctx.resume().catch(() => {});
-        if (data.audioMode === 'beeps' && !data.audioMuted) {
-          beepDone();
-        } else {
-          playVoice('workout_done');
-        }
-        vibrate([200, 100, 200, 100, 400]);
-        showComplete();
-        persistWorkoutState('complete', true);
+        completeActiveWorkoutNow();
         return;
       }
       transitionCountdown = TRANSITION_SECS;
@@ -848,6 +837,22 @@
     renderWorkoutState();
     updateControls();
     persistWorkoutState('in-progress', true);
+  }
+
+  function completeActiveWorkoutNow() {
+    if (!activeWorkout) return;
+    cancelScheduledAudio();
+    stopTimer();
+    const ctx = ns.getAudioCtx();
+    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+    if (data.audioMode === 'beeps' && !data.audioMuted) {
+      beepDone();
+    } else {
+      playVoice('workout_done');
+    }
+    vibrate([200, 100, 200, 100, 400]);
+    showComplete();
+    persistWorkoutState('complete', true);
   }
 
   function updateControls() {
@@ -1493,6 +1498,11 @@
       if (isRunning) stopTimer(); else startTimer();
     });
     $('#ctrl-restart').addEventListener('click', restartWorkout);
+    $('#ctrl-finish-now').addEventListener('click', () => {
+      if (confirm('Finish workout now? You can still rate it on the next screen.')) {
+        completeActiveWorkoutNow();
+      }
+    });
     $('#workout-back-btn').addEventListener('click', () => {
       stopTimer();
       cancelScheduledAudio();
@@ -1573,18 +1583,7 @@
     advanceBySeconds(delta);
     forceNewTrackSegment = true;
     if (segIdx >= activeWorkout.segments.length) {
-      cancelScheduledAudio();
-      stopTimer();
-      const ctx = ns.getAudioCtx();
-      if (ctx.state === 'suspended') ctx.resume().catch(() => {});
-      if (data.audioMode === 'beeps' && !data.audioMuted) {
-        beepDone();
-      } else {
-        playVoice('workout_done');
-      }
-      vibrate([200, 100, 200, 100, 400]);
-      showComplete();
-      persistWorkoutState('complete', true);
+      completeActiveWorkoutNow();
       return;
     }
     if (data.audioMode !== 'beeps' && data.audioMode !== 'mute') {
