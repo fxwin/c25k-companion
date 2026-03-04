@@ -21,7 +21,7 @@ No login or download required (Available as PWA), no ads, completely free, and a
 ## Why?
 Because I can.
 
-I didn't want to bother with 3rd party apps or websites, had a pretty specific set of features in mind and as a pretty self-contained and small project, this seemed perfect for a coding agent of my choice (In this case a bit of Opus 4.6 until I realized it eats premium requests like candy, so most of this was done with GPT-5.2 Codex instead). 
+I didn't want to bother with 3rd party apps or websites, had a pretty specific set of features in mind and as a pretty self-contained and small project, this seemed perfect for a coding agent of my choice (In this case a bit of Opus 4.6 until I realized it eats premium requests like candy, so most of this was done with GPT-5.2/3 Codex instead). 
 
 TTS powered by Elevenlabs
 

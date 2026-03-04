@@ -187,8 +187,6 @@
         if (readyKey) events.push({ time: t, key: readyKey });
         t += TRANSITION_SECS;
         events.push({ time: t, key: 'start_now' });
-      } else {
-        events.push({ time: t, key: 'workout_done' });
       }
     }
     return events;
@@ -668,14 +666,13 @@
       segIdx++;
       segElapsed = 0;
       if (segIdx >= activeWorkout.segments.length) {
-        const hadScheduledDone = scheduledAudioActive && !!audioBufferCache[`${data.audioMode}/workout_done`];
         cancelScheduledAudio();
         stopTimer();
         const ctx = ns.getAudioCtx();
         if (ctx.state === 'suspended') ctx.resume().catch(() => {});
         if (data.audioMode === 'beeps' && !data.audioMuted) {
           beepDone();
-        } else if (!hadScheduledDone) {
+        } else {
           playVoice('workout_done');
         }
         vibrate([200, 100, 200, 100, 400]);
@@ -1517,14 +1514,13 @@
     advanceBySeconds(delta);
     forceNewTrackSegment = true;
     if (segIdx >= activeWorkout.segments.length) {
-      const hadScheduledDone = scheduledAudioActive && !!audioBufferCache[`${data.audioMode}/workout_done`];
       cancelScheduledAudio();
       stopTimer();
       const ctx = ns.getAudioCtx();
       if (ctx.state === 'suspended') ctx.resume().catch(() => {});
       if (data.audioMode === 'beeps' && !data.audioMuted) {
         beepDone();
-      } else if (!hadScheduledDone) {
+      } else {
         playVoice('workout_done');
       }
       vibrate([200, 100, 200, 100, 400]);

@@ -23,10 +23,9 @@
   window.C25K.PLAN = [
     // Test workout (remove before going live)
     { week: 0, day: 1, segments: [
-      { type: 'warmup', duration: 5 },
-      { type: 'jog', duration: 3 }, { type: 'walk', duration: 3 },
-      { type: 'jog', duration: 3 }, { type: 'walk', duration: 3 },
-      { type: 'jog', duration: 3 }, 
+      { type: 'warmup', duration: 120 },
+      { type: 'jog', duration: 60 }, { type: 'walk', duration: 90 },
+      { type: 'jog', duration: 60 }, { type: 'walk', duration: 90 },
     ]},
     // Week 1
     { week: 1, day: 1, segments: [warmup(), ...alternate(60, 90, 20)] },
