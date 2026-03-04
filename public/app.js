@@ -43,8 +43,40 @@
   let scheduledSources = [];
   let scheduledGainNode = null;
   let scheduledAudioActive = false;
+  const STORAGE_WRITE_INTERVAL_MS = 5000;
+  let lastStorageWriteTs = 0;
+  let pendingStorageTimer = null;
 
-  function persistWorkoutState(status) {
+  function flushDataWrite() {
+    if (pendingStorageTimer) {
+      clearTimeout(pendingStorageTimer);
+      pendingStorageTimer = null;
+    }
+    saveData(data);
+    lastStorageWriteTs = Date.now();
+  }
+
+  function scheduleDataWrite(force) {
+    if (force) {
+      flushDataWrite();
+      return;
+    }
+    const now = Date.now();
+    const elapsed = now - lastStorageWriteTs;
+    const wait = Math.max(0, STORAGE_WRITE_INTERVAL_MS - elapsed);
+    if (wait === 0) {
+      flushDataWrite();
+      return;
+    }
+    if (pendingStorageTimer) return;
+    pendingStorageTimer = setTimeout(() => {
+      pendingStorageTimer = null;
+      saveData(data);
+      lastStorageWriteTs = Date.now();
+    }, wait);
+  }
+
+  function persistWorkoutState(status, forceWrite) {
     if (activeWorkoutIdx === null) return;
     data.activeWorkoutState = {
       status: status || 'in-progress',
@@ -59,12 +91,12 @@
       track,
       lastTs: Date.now(),
     };
-    saveData(data);
+    scheduleDataWrite(!!forceWrite);
   }
 
   function clearWorkoutState() {
     data.activeWorkoutState = null;
-    saveData(data);
+    scheduleDataWrite(true);
   }
 
   function getVoiceKeyForReady(nextSeg, workoutWeek) {
@@ -246,7 +278,7 @@
           forceNewTrackSegment = false;
         }
         if (data.activeWorkoutState) data.activeWorkoutState.track = track;
-        saveData(data);
+        scheduleDataWrite(false);
       },
       () => {},
       { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 }
@@ -341,7 +373,7 @@
     if (state.status === 'complete' || segIdx >= activeWorkout.segments.length) {
       stopTimer();
       showComplete();
-      persistWorkoutState('complete');
+      persistWorkoutState('complete', true);
       return true;
     }
 
@@ -478,7 +510,7 @@
     $('#active-workout-title').textContent = workoutLabel(activeWorkout);
     renderWorkoutState();
     updateControls();
-    persistWorkoutState('in-progress');
+    persistWorkoutState('in-progress', true);
     syncWorkoutAudioControls();
     preloadWorkoutAudio(activeWorkout);
   }
@@ -590,7 +622,7 @@
         }
         vibrate([200, 100, 200, 100, 400]);
         showComplete();
-        persistWorkoutState('complete');
+        persistWorkoutState('complete', true);
         return;
       }
       transitionCountdown = TRANSITION_SECS;
@@ -666,7 +698,7 @@
       timerInterval = setInterval(tick, 1000);
     }
     updateControls();
-    persistWorkoutState('in-progress');
+    persistWorkoutState('in-progress', true);
     startTracking();
     startSilentAudio();
   }
@@ -679,7 +711,7 @@
     clearInterval(timerInterval);
     timerInterval = null;
     updateControls();
-    persistWorkoutState('in-progress');
+    persistWorkoutState('in-progress', true);
     stopTracking();
     if (scheduledAudioActive) {
       // Suspending the context freezes the audio clock — all scheduled
@@ -705,7 +737,7 @@
     track = [];
     renderWorkoutState();
     updateControls();
-    persistWorkoutState('in-progress');
+    persistWorkoutState('in-progress', true);
   }
 
   function updateControls() {
@@ -726,7 +758,7 @@
     $('#complete-done-btn').disabled = true;
     $('#complete-workout-name').textContent = workoutLabel(activeWorkout);
     $('#complete-duration').textContent = `Duration: ${formatDurationShort(totalElapsed)}`;
-    persistWorkoutState('complete');
+    persistWorkoutState('complete', true);
   }
 
   function saveCompleted() {
@@ -1439,7 +1471,7 @@
       }
       vibrate([200, 100, 200, 100, 400]);
       showComplete();
-      persistWorkoutState('complete');
+      persistWorkoutState('complete', true);
       return;
     }
     if (data.audioMode !== 'beeps' && data.audioMode !== 'mute') {
@@ -1447,6 +1479,10 @@
     }
     renderWorkoutState();
     persistWorkoutState('in-progress');
+  });
+
+  window.addEventListener('pagehide', () => {
+    flushDataWrite();
   });
 
   document.addEventListener('DOMContentLoaded', () => {
