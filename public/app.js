@@ -56,6 +56,7 @@
       preStartCountdown,
       preStartAnnounced,
       isRunning,
+      track,
       lastTs: Date.now(),
     };
     saveData(data);
@@ -219,7 +220,7 @@
         const coord = {
           lat: pos.coords.latitude,
           lng: pos.coords.longitude,
-          ts: Date.now(),
+          ts: Number.isFinite(pos.timestamp) ? pos.timestamp : Date.now(),
         };
         const type = currentSegmentType();
         const lastSeg = track.length > 0 ? track[track.length - 1] : null;
@@ -1026,16 +1027,11 @@
     const jogColor = '#2E7D32';
     const walkColor = '#1E88E5';
 
-    // Build renderable segments with per-segment stats
+    // Build renderable segments
     const segments = entry.track.map(seg => {
-      let distance = 0;
-      let time = 0;
-      const points = seg.coords.map(c => [c.lat, c.lng]);
-      for (let i = 1; i < seg.coords.length; i++) {
-        distance += distanceMeters(seg.coords[i - 1], seg.coords[i]);
-        time += Math.max(0, Math.floor((seg.coords[i].ts - seg.coords[i - 1].ts) / 1000));
-      }
-      return { type: seg.type, points, distance, time };
+      const coords = Array.isArray(seg.coords) ? seg.coords : [];
+      const points = coords.map(c => [c.lat, c.lng]);
+      return { type: seg.type, coords, points };
     }).filter(seg => seg.points.length > 1);
 
     // Build or reuse map
@@ -1090,11 +1086,18 @@
       if (visStart <= visEnd) {
         const sliceFrom = visStart - globalIdx;
         const sliceTo = visEnd - globalIdx + 1;
+        const trimmedCoords = seg.coords.slice(sliceFrom, sliceTo);
+        let distance = 0;
+        let time = 0;
+        for (let i = 1; i < trimmedCoords.length; i++) {
+          distance += distanceMeters(trimmedCoords[i - 1], trimmedCoords[i]);
+          time += Math.max(0, Math.floor((trimmedCoords[i].ts - trimmedCoords[i - 1].ts) / 1000));
+        }
         trimmedSegments.push({
           type: seg.type,
           points: seg.points.slice(sliceFrom, sliceTo),
-          distance: seg.distance,
-          time: seg.time,
+          distance,
+          time,
         });
       }
       globalIdx += seg.points.length;
@@ -1144,7 +1147,7 @@
     layer.addTo(map);
     map._c25kLayer = layer;
 
-    const allPoints = entry.track.flatMap(seg => seg.coords.map(c => [c.lat, c.lng]));
+    const allPoints = trimmedSegments.flatMap(seg => seg.points);
     const bounds = L.latLngBounds(allPoints);
     map.fitBounds(bounds, { padding: [20, 20] });
 
@@ -1397,9 +1400,8 @@
     const delta = Math.max(0, Math.floor((Date.now() - state.lastTs) / 1000));
     if (delta <= 2) return;
     suppressTransitionAlert = true;
-    const prevSegIdx = segIdx;
     advanceBySeconds(delta);
-    if (segIdx !== prevSegIdx) forceNewTrackSegment = true;
+    forceNewTrackSegment = true;
     if (segIdx >= activeWorkout.segments.length) {
       cancelScheduledAudio();
       stopTimer();

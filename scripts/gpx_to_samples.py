@@ -8,7 +8,7 @@ Each segment_spec is: type:start-end
     e.g. warmup:0-57 jog:57-112 walk:112-170
 
 Speeds used (m/s): warmup=1.4, walk=1.5, jog=2.8
-Timestamps are minute-offsets from the start of the workout.
+Timestamps are millisecond offsets from the start of the workout.
 
 Example:
     python3 scripts/gpx_to_samples.py scripts/onthegomap-8-km-route.gpx \
@@ -51,7 +51,7 @@ def parse_segment_spec(spec):
 
 
 def gen_segments(pts, segment_defs):
-    """Generate segments with ts as minute-offsets from start."""
+    """Generate segments with ts as millisecond offsets from start."""
     elapsed_sec = 0.0
     segments = []
     for stype, si, ei in segment_defs:
@@ -59,13 +59,13 @@ def gen_segments(pts, segment_defs):
         coords = []
         for i in range(si, ei + 1):
             if i == si and len(segments) == 0:
-                coords.append({'lat': pts[i][0], 'lng': pts[i][1], 'ts': 0.0})
+                coords.append({'lat': pts[i][0], 'lng': pts[i][1], 'ts': 0})
             elif i == si:
-                coords.append({'lat': pts[i][0], 'lng': pts[i][1], 'ts': round(elapsed_sec / 60.0, 4)})
+                coords.append({'lat': pts[i][0], 'lng': pts[i][1], 'ts': int(round(elapsed_sec * 1000))})
             else:
                 dist = haversine(pts[i - 1], pts[i])
                 elapsed_sec += dist / speed
-                coords.append({'lat': pts[i][0], 'lng': pts[i][1], 'ts': round(elapsed_sec / 60.0, 4)})
+                coords.append({'lat': pts[i][0], 'lng': pts[i][1], 'ts': int(round(elapsed_sec * 1000))})
         segments.append({'type': stype, 'coords': coords})
     return segments
 
@@ -99,7 +99,7 @@ def main():
     for seg in segments:
         n = len(seg['coords'])
         last_ts = seg['coords'][-1]['ts']
-        print(f"  {seg['type']}: {n} coords, ends at {last_ts:.1f} min", file=sys.stderr)
+        print(f"  {seg['type']}: {n} coords, ends at {last_ts / 1000:.1f} sec", file=sys.stderr)
 
     print(fmt_js(segments))
 
