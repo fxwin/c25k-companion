@@ -178,6 +178,7 @@
     if (d.activeWorkoutState === undefined) d.activeWorkoutState = null;
     if (d.gpsPermissionAsked === undefined) d.gpsPermissionAsked = false;
     if (d.hasDummyHistory === undefined) d.hasDummyHistory = false;
+    if (!Array.isArray(d.manualCompletedWorkouts)) d.manualCompletedWorkouts = [];
     if (!d.audioMode) d.audioMode = 'beeps';
     if (d.audioMuted === undefined) d.audioMuted = false;
     if (d.audioModeSet === undefined) d.audioModeSet = false;

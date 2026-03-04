@@ -389,6 +389,40 @@
     return true;
   }
 
+  function getCompletedWorkoutSet() {
+    const done = new Set();
+    const autoDoneUntil = Math.max(0, data.currentWorkout || 0);
+    for (let i = 0; i < autoDoneUntil; i++) done.add(i);
+    const manual = Array.isArray(data.manualCompletedWorkouts) ? data.manualCompletedWorkouts : [];
+    for (const idx of manual) {
+      if (Number.isInteger(idx) && idx >= 0 && idx < PLAN.length) done.add(idx);
+    }
+    return done;
+  }
+
+  function getEffectiveRecommendedWorkoutIndex() {
+    if (hasOverride(data)) return data.overrideWorkoutIdx;
+    const done = getCompletedWorkoutSet();
+    for (let i = 0; i < PLAN.length; i++) {
+      if (!done.has(i)) return i;
+    }
+    return PLAN.length;
+  }
+
+  function toggleManualWorkoutComplete(idx, checked) {
+    const autoDone = idx < (data.currentWorkout || 0);
+    if (autoDone) return;
+    const set = new Set(Array.isArray(data.manualCompletedWorkouts) ? data.manualCompletedWorkouts : []);
+    if (checked) set.add(idx);
+    else set.delete(idx);
+    data.manualCompletedWorkouts = [...set].sort((a, b) => a - b);
+    if (data.overrideWorkoutIdx !== null && data.overrideWorkoutIdx !== undefined) {
+      const done = getCompletedWorkoutSet();
+      if (done.has(data.overrideWorkoutIdx)) data.overrideWorkoutIdx = null;
+    }
+    saveData(data);
+  }
+
   // ─── SETUP SCREEN ─────────────────────────────────────────
   function initSetup() {
     selectedDays = new Set();
@@ -430,6 +464,16 @@
     if (!data.workoutDays) { showScreen('#setup-screen'); return; }
     showScreen('#home-screen');
 
+    const prevOverviewEl = $('#program-overview');
+    const overviewWasOpen = prevOverviewEl ? prevOverviewEl.open : !!data.programOverviewOpen;
+    const openWeeks = new Set();
+    if (prevOverviewEl) {
+      prevOverviewEl.querySelectorAll('.week-group[open]').forEach(group => {
+        const week = Number(group.dataset.week);
+        if (Number.isInteger(week)) openWeeks.add(week);
+      });
+    }
+
     // Race countdown
     const countdownText = raceCountdownText(data);
     const countdownEl = $('#race-countdown');
@@ -456,7 +500,7 @@
     }
 
     const overrideActive = hasOverride(data);
-    let idx = getRecommendedIndex(data);
+    let idx = getEffectiveRecommendedWorkoutIndex();
     if (!getDevMode() && PLAN[idx] && PLAN[idx].week === 0) {
       idx = 1;
     }
@@ -485,9 +529,23 @@
     $('#workout-total-time').textContent = `Total: ${formatDurationShort(totalDuration(w.segments))}`;
 
     // Build program overview
-    buildProgramOverview(data, { onSetNext: showHome });
+    buildProgramOverview(data, {
+      onSetNext: showHome,
+      onToggleComplete: (woIdx, checked) => {
+        toggleManualWorkoutComplete(woIdx, checked);
+        showHome();
+      },
+    });
     const overviewEl = $('#program-overview');
-    if (overviewEl) overviewEl.open = !!data.programOverviewOpen;
+    if (overviewEl) {
+      overviewEl.open = overviewWasOpen;
+      if (openWeeks.size > 0) {
+        overviewEl.querySelectorAll('.week-group').forEach(group => {
+          const week = Number(group.dataset.week);
+          if (openWeeks.has(week)) group.open = true;
+        });
+      }
+    }
   }
 
   // ─── WORKOUT SCREEN ───────────────────────────────────────
@@ -762,7 +820,7 @@
   }
 
   function saveCompleted() {
-    const woIdx = getRecommendedIndex(data);
+    const woIdx = activeWorkoutIdx;
     const stats = computeTrackStats(track);
     data.history.push({
       workoutIdx: woIdx,
@@ -1318,7 +1376,7 @@
     }
 
     $('#start-btn').addEventListener('click', () => {
-      const idx = getRecommendedIndex(data);
+      const idx = getEffectiveRecommendedWorkoutIndex();
       if (idx < PLAN.length) startWorkout(idx);
     });
     $('#history-btn').addEventListener('click', showHistory);

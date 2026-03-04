@@ -77,7 +77,17 @@
     const PLAN = ns.PLAN;
     const container = $('#program-weeks');
     container.innerHTML = '';
-    const currentIdx = data.currentWorkout;
+    const autoDoneUntil = Math.max(0, data.currentWorkout || 0);
+    const manualDone = new Set((Array.isArray(data.manualCompletedWorkouts) ? data.manualCompletedWorkouts : [])
+      .filter(idx => Number.isInteger(idx) && idx >= 0 && idx < PLAN.length));
+    const isDoneWorkout = (idx) => idx < autoDoneUntil || manualDone.has(idx);
+    let currentIdx = PLAN.length;
+    for (let i = 0; i < PLAN.length; i++) {
+      if (!isDoneWorkout(i)) {
+        currentIdx = i;
+        break;
+      }
+    }
 
     for (let week = 1; week <= 9; week++) {
       const weekWorkouts = PLAN.filter(w => w.week === week);
@@ -86,6 +96,7 @@
 
       const details = document.createElement('details');
       details.className = 'week-group';
+      details.dataset.week = String(week);
 
       const isCurrent = currentIdx >= firstIdx && currentIdx <= lastIdx;
       const isDone = currentIdx > lastIdx;
@@ -104,9 +115,10 @@
 
       weekWorkouts.forEach(w => {
         const woIdx = PLAN.indexOf(w);
-        const done = woIdx < currentIdx;
+        const done = isDoneWorkout(woIdx);
         const current = woIdx === currentIdx;
         const selected = ns.hasOverride(data) && data.overrideWorkoutIdx === woIdx;
+        const autoDone = woIdx < autoDoneUntil;
 
         const wrapper = document.createElement('div');
         wrapper.className = 'wo-list-entry';
@@ -115,10 +127,17 @@
         el.className = 'wo-list-item' + (done ? ' wo-done' : '') + (current ? ' wo-current' : '') + (selected ? ' wo-selected' : '');
         el.style.cursor = 'pointer';
 
-        const checkContent = done ? '\u2713' : '';
         const dur = formatDurationShort(totalDuration(w.segments));
+        const checkContent = done ? '\u2713' : '';
         el.innerHTML = `
-          <span class="wo-check">${checkContent}</span>
+          <span
+            class="wo-check${autoDone ? ' wo-check-disabled' : ''}"
+            role="checkbox"
+            tabindex="0"
+            aria-checked="${done ? 'true' : 'false'}"
+            aria-label="Mark Week ${w.week} Day ${w.day} as complete"
+            ${autoDone ? 'aria-disabled="true" title="Completed from workout history"' : ''}
+          >${checkContent}</span>
           <span>Day ${w.day}</span>
           <span class="wo-actions">
             <button class="btn btn-link btn-muted wo-set-next-inline" data-idx="${woIdx}">Set next</button>
@@ -143,6 +162,26 @@
         wrapper.appendChild(preview);
 
         const setBtn = el.querySelector('.wo-set-next-inline');
+        const completeToggle = el.querySelector('.wo-check');
+
+        completeToggle.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (autoDone) return;
+          if (callbacks.onToggleComplete) {
+            callbacks.onToggleComplete(woIdx, completeToggle.getAttribute('aria-checked') !== 'true');
+          }
+        });
+
+        completeToggle.addEventListener('keydown', (e) => {
+          if (e.key !== 'Enter' && e.key !== ' ') return;
+          e.preventDefault();
+          e.stopPropagation();
+          if (autoDone) return;
+          if (callbacks.onToggleComplete) {
+            callbacks.onToggleComplete(woIdx, completeToggle.getAttribute('aria-checked') !== 'true');
+          }
+        });
+
         setBtn.addEventListener('click', (e) => {
           e.stopPropagation();
           if (woIdx === data.currentWorkout) {
