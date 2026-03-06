@@ -30,3 +30,4 @@ Dev mode switches to dummy workout data so I can iterate faster when making chan
 
 ## Known Issues
 - Audio playback while in background/lock screen in some cases, Firefox mobile app seems to work fine
+- Unreliable GPS tracking while locked, not sure if this is fixable as long as this runs 'only' in the browser
